@@ -1,0 +1,8 @@
+
+reduceH=/gpfs/alpine/stf006/scratch/djh992/05_MDPR/Packages/reduce/bin/bin/reduce
+autogrid=/gpfs/alpine/stf006/scratch/djh992/05_MDPR/Packages/AutoGrid4/autodocksuite-4.0.1/bin/autogrid4
+autodock=/gpfs/alpine/stf006/scratch/djh992/05_MDPR/Packages/AutoDock-GPU/bin/autodock_gpu_64wi
+parallelGrid=8
+parallelDock=1
+parallelAntechamber=8
+parallelEM=2

@@ -1,0 +1,8 @@
+source leaprc.gaff2
+lig = loadmol2 aaa.mol2 
+loadamberparams aaa.frcmod
+check lig
+saveoff lig aaa_sim.lib
+savepdb lig aaa_sim.pdb
+saveamberparm lig aaa_sim.prmtop aaa_sim.rst7
+quit
