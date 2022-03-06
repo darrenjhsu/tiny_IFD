@@ -16,11 +16,12 @@ pathConfig = {
         'planningFolder': '../../05_Refinement/script/',
         'configFolder': '../../01_Workflow/utilities/',
         'saveFolder': './pickle/',
-        'sysNames': sys.argv[1].split('/')[-1]
+        'sysNames': sys.argv[1].split('/')[-1],
+        'overrideSuccess': True
 }
 
 
-MDR = MolecularDynamicsRefinement(simulationPrefixes=['EM','QR','MD'],
+MDR = MolecularDynamicsRefinement(simulationPrefixes=['MD'],
         **dict(pathConfig))
 MDR.createLigands()
 print(MDR.Ligands)

@@ -134,6 +134,7 @@ class mdgxTrajectory:
         self.outFile = outFile
         self.rstFile = rstFile
         self.ioutfm = ioutfm
+        self.success = False
         self.hasRMSD = False
         self.hasTrjFile = False
         self.hasOutFile = False
@@ -201,11 +202,12 @@ class mdgxTrajectory:
                 self.output = ReadLog(self.outFile)
                 if Profile:
                     t4 = time.time()
-                self.hasRMSD = True
                 if Profile:
                     print(f'    Profiling: Loading comp {(t1-t0)*1000:.3f} ms | Superpose {(t2-t1)*1000:.3f} ms | RMSD {(t3-t2)*1000:.3f} ms | Read output {(t4-t3)*1000:.3f} ms ')
+                self.hasRMSD = True
                 self.hasTrjFile = True
                 self.hasOutFile = True
+                self.success = True
                  
                 if not self.hasLigandTrajectory: # Also store ligand trajectories for contact analysis
 
@@ -296,6 +298,7 @@ class mdgxTrajectory:
         self.trjFile = TRJ.trjFile
         self.outFile = TRJ.outFile
         self.rstFile = TRJ.rstFile
+        self.success = TRJ.success
         self.hasRMSD = TRJ.hasRMSD
 #         if self.hasRMSD:
         self.RMSD = TRJ.RMSD
@@ -585,8 +588,12 @@ class Ligand:
         self.Poses = {} 
 
         for ii in range(self.numPoses):
-            self.Poses[self.poseRanks[ii]] = Pose(self.poseNames[ii], self.poseRanks[ii], self.qualifiedTruth['QR'][ii], self.ligand_res, 
-                                                  settings, folderMetadata, simulationPrefixes=self.simulationPrefixes)
+            try:
+                self.Poses[self.poseRanks[ii]] = Pose(self.poseNames[ii], self.poseRanks[ii], self.qualifiedTruth['QR'][ii], self.ligand_res, 
+                                                      settings, folderMetadata, simulationPrefixes=self.simulationPrefixes)
+            except:
+                self.Poses[self.poseRanks[ii]] = Pose(self.poseNames[ii], self.poseRanks[ii], self.qualifiedTruth['MD'][ii], self.ligand_res, 
+                                                      settings, folderMetadata, simulationPrefixes=self.simulationPrefixes)
 
             
         # For stats
@@ -818,7 +825,8 @@ class MolecularDynamicsRefinement:
         self.inpcrdFolder = self.structureFolder + '/inpcrd/'
         self.prmtopFolder = self.structureFolder + '/prmtop/'
         self.saveFolder = self.rootFolder + '/pickle/'
-        
+        self.overrideSuccess = False # This is for newly devleoped method where minimization is done with openmm
+ 
         for k, v in kwargs.items(): # Override these folder path assignments
             if k == 'rootFolder':
                 self.rootFolder = v
@@ -838,6 +846,8 @@ class MolecularDynamicsRefinement:
                 self.prmtopFolder = v
             elif k == 'saveFolder':
                 self.saveFolder = v
+            elif k == 'overrideSuccess':
+                self.overrideSuccess = v
 
 
         
@@ -880,18 +890,23 @@ class MolecularDynamicsRefinement:
             self.settings = json.load(f)
             
         # Load all successes
-        self.success = {}
-        for simPrefix in self.simulationPrefixes:
-            try:
-                with open(self.planningFolder + simPrefix + '_success.txt','r') as f:
-                    if self.customSysNames:
-                        self.success[simPrefix] = [x.split('/')[-1] for x in f.readlines()[0].strip('\n').split(',') if self.sysNames[0] in x]
-                    else:
-                        self.success[simPrefix] = f.readlines()[0].strip('\n').split(',')
-                    print(f'Success runs: {self.success[simPrefix]}')
-            except:
-                self.success[simPrefix] = []
-        
+        if not self.overrideSuccess:
+            self.success = {}
+            for simPrefix in self.simulationPrefixes:
+                try:
+                    with open(self.planningFolder + simPrefix + '_success.txt','r') as f:
+                        if self.customSysNames:
+                            self.success[simPrefix] = [x.split('/')[-1] for x in f.readlines()[0].strip('\n').split(',') if self.sysNames[0] in x]
+                        else:
+                            self.success[simPrefix] = f.readlines()[0].strip('\n').split(',')
+                        print(f'Success runs: {self.success[simPrefix]}')
+                except:
+                    self.success[simPrefix] = []
+        else:
+            print('Overriding success ... for openmm')
+            self.success = {}
+            for simPrefix in self.simulationPrefixes:
+                self.success['QR'] = self.poseNames 
         
         self.Ligands = {}
         
@@ -1032,7 +1047,7 @@ class MolecularDynamicsRefinement:
         varlist = [self.rootFolder, self.referenceFolder, self.structureFolder, self.simulationFolder,
                    self.planningFolder, self.inpcrdFolder, self.prmtopFolder, self.saveFolder, self.folderMetadata,
                    self.inpcrdFiles, self.numPoses, self.poseNames, self.prmtopFiles, self.numSystems,
-                   self.sysNames, self.ligand_res, self.settings, self.success, self.simulationPrefixes]
+                   self.sysNames, self.ligand_res, self.settings, self.success, self.overrideSuccess, self.simulationPrefixes]
         with open(f'{self.saveFolder}/{fname}', 'wb') as f:
             pickle.dump(varlist, f)
             
@@ -1041,7 +1056,7 @@ class MolecularDynamicsRefinement:
             self.rootFolder, self.referenceFolder, self.structureFolder, self.simulationFolder, \
                self.planningFolder, self.inpcrdFolder, self.prmtopFolder, self.saveFolder, self.folderMetadata, \
                self.inpcrdFiles, self.numPoses, self.poseNames, self.prmtopFiles, self.numSystems, \
-               self.sysNames, self.ligand_res, self.settings, self.success, self.simulationPrefixes = \
+               self.sysNames, self.ligand_res, self.settings, self.success, self.overrideSuccess, self.simulationPrefixes = \
                     pickle.load(f)
 
     def saveOneLigand(self, sysName):
@@ -1074,7 +1089,7 @@ class MolecularDynamicsRefinement:
         self.inpcrdFolder = MDR.inpcrdFolder
         self.prmtopFolder = MDR.prmtopFolder
         self.saveFolder = MDR.saveFolder
-        
+        self.overrideSuccess = MDR.overrideSuccess 
         self.folderMetadata = MDR.folderMetadata
         
         self.inpcrdFiles = MDR.inpcrdFiles

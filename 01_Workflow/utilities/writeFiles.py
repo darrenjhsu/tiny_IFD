@@ -117,6 +117,64 @@ def write_prepareComplex_openmm(fh, jname, lname, dname):
         cd ../
         ''')
 
+def write_cpptraj(fname, jname, parallelcpptraj):
+    with open(fname, 'w') as f:
+        f.write(f'''
+import glob, os, sys
+inpcrd = [x.split('/')[-1].split('.')[0] for x in glob.glob('../../Structure/inpcrd/*')]
+inpcrd.sort()
+# Get num of res
+with open(f'../../reference_structure/complex.prmtop') as f:
+    cont = f.readlines()
+n_res = 0
+count_res_flag = 0
+for line in cont:
+    if 'RESIDUE_LABEL' in line:
+        count_res_flag = 1
+        continue
+    if 'RESIDUE_POINTER' in line:
+        break
+    if 'FORMAT' not in line and count_res_flag:
+        n_res += len(line.split())
+
+# make dirs
+for pose in inpcrd:
+    os.makedirs(f'../in/{{pose}}', exist_ok=True)
+    os.makedirs(f'../out/{{pose}}', exist_ok=True)
+
+process_these_inpcrd = inpcrd
+num_script_files = min({parallelcpptraj}, len(process_these_inpcrd))
+for ii in range(0, num_script_files):
+    try:
+        os.remove(f'process_cpptraj_{{ii}}.sh')
+    except:
+        pass
+
+this_ligand = ''
+for idx, pose in enumerate(process_these_inpcrd):
+    with open(f'process_cpptraj_{{idx % num_script_files}}.sh','a') as g:
+        if pose.split('_')[0] != this_ligand:
+            print('')
+            this_ligand = pose.split('_')[0]
+            print(pose.split('_')[0], end=' ')
+        print(pose.split('_')[-1], end = ' ')
+        lig = pose.split('_')[0]
+        traj_list = [x.split('/')[-1].split('.')[0] for x in glob.glob(f'../../Simulation/{{pose}}/*.nc')]
+        for traj in traj_list:
+            g.write(f'~/Tools/amber_rhel8_2/bin/cpptraj -i ../in/{{pose}}/{{traj}}.in\\n')
+            with open(f'../in/{{pose}}/{{traj}}.in','w') as f:
+                f.write(f'parm ../../Structure/prmtop/{{this_ligand}}.prmtop\\n')
+                f.write(f'trajin ../../Simulation/{{pose}}/{{traj}}.nc\\n')
+                f.write(f'energy :1-{{n_res-1}} out ../out/{{pose}}/{{traj}}_apo.dat\\n')
+                f.write(f'energy :{{n_res}} out ../out/{{pose}}/{{traj}}_lig.dat\\n')
+                f.write(f'energy out ../out/{{pose}}/{{traj}}_holo.dat\\n')
+
+with open('process_all_cpptraj.sh','w') as f:
+    #f.write(f'for i in {{{{0..{{num_script_files-1}}}}}}; do jsrun -n 1 sh process_cpptraj_${{{{i}}}}.sh > output_${{{{i}}}}.log & done\\n')
+    f.write(f'for i in {{{{0..{{num_script_files-1}}}}}}; do sh process_cpptraj_${{{{i}}}}.sh > output_${{{{i}}}}.log & done\\n')
+    f.write('wait\\n')
+''')
+
 def write_em(fh, jname):
     fh.write(f'''
         cd ../{jname}/Structure

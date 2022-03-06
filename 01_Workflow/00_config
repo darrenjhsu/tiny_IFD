@@ -6,3 +6,4 @@ parallelGrid=8
 parallelDock=1
 parallelAntechamber=8
 parallelEM=2
+parallelcpptraj=16

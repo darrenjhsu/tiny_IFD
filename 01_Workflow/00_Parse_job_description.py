@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser(description="Generate related work shell script
 parser.add_argument('--parallelGrid', nargs='?', type=int, default=1, help="Split grid prep to N chunks for parallel execution")
 parser.add_argument('--parallelDock', nargs='?', type=int, default=1, help="Split docking to N chunks for parallel execution")
 parser.add_argument('--parallelAntechamber', nargs='?', type=int, default=1, help="Split ligand parametrization to N chunks for parallel execution")
+parser.add_argument('--parallelcpptraj', nargs='?', type=int, default=1, help="Parallelize CPU cpptraj calculation")
 parser.add_argument('--parallelEM', nargs='?', type=int, default=1, help="Split energy minimization to N chunks for parallel execution")
 parser.add_argument('--reduceH', nargs='?', type=str, default='.', help="Location of reduce executable (a tool that adds H)")
 parser.add_argument('--autogrid', nargs='?', type=str, default='.', help="Location of autogrid4 executable")
@@ -30,6 +31,8 @@ config['parallelGrid'] = args.parallelGrid
 config['parallelDock'] = args.parallelDock
 config['parallelAntechamber'] = args.parallelAntechamber
 config['parallelEM'] = args.parallelAntechamber
+config['parallelcpptraj'] = args.parallelcpptraj
+
 
 if args.config is not None:
     with open(args.config,'r') as f:
@@ -37,7 +40,7 @@ if args.config is not None:
     for line in cont:
         try:
             print(line)
-            if line.split('=')[0] in ['parallelGrid', 'parallelDock', 'parallelAntechamber', 'parallelEM']:
+            if line.split('=')[0] in ['parallelGrid', 'parallelDock', 'parallelAntechamber', 'parallelEM', 'parallelcpptraj']:
                 try:
                     config[line.split('=')[0]] = int(line.split('=')[1].strip())
                 except:
@@ -217,6 +220,28 @@ for idx, row in Jobs.iterrows():
 
 for ii in range(config['parallelEM']):
     fh[ii].close()
+
+# Write cpptraj script
+
+with open(f'../05_Refinement/script/gen_cpptraj_script.sh','w') as f,\
+     open(f'../05_Refinement/script/run_cpptraj_script.sh','w') as g:
+    for idx, row in Jobs.iterrows():
+        jname = row["Job_name"]
+        os.makedirs(f'../05_Refinement/{jname}/cpptraj', exist_ok=True)
+        os.makedirs(f'../05_Refinement/{jname}/cpptraj/in', exist_ok=True)
+        os.makedirs(f'../05_Refinement/{jname}/cpptraj/out', exist_ok=True)
+        os.makedirs(f'../05_Refinement/{jname}/cpptraj/script', exist_ok=True)
+        write_cpptraj(f'../05_Refinement/{jname}/cpptraj/script/generate_cpptraj_inputs.py', jname, config['parallelcpptraj'])
+        f.write(f'cd ../{jname}/cpptraj/script\n')
+        f.write(f'python generate_cpptraj_inputs.py\n')
+        f.write(f'cd ../../\n')
+        g.write(f'echo processing {jname}\n')
+        g.write(f'cd ../{jname}/cpptraj/script\n')
+        g.write(f'sh process_all_cpptraj.sh\n')
+        g.write(f'wait\n')
+        g.write(f'cd ../../\n')
+
+
 
 # Write analysis script
 
