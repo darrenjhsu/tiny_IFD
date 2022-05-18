@@ -1,5 +1,5 @@
 
-dockingMode=rigid
+dockingMode=flex
 parallelGrid=32
 parallelDock=10
 parallelAntechamber=10

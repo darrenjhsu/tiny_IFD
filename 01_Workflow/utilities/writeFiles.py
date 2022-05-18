@@ -9,7 +9,8 @@ def write_preppdbqt(fh, config, dname, rname, rfname, dockX, dockY, dockZ, rigid
         obabel -ipdb {rname}_restored_h.pdb -opdb -O {rname}_restored_e.pdb # Just to get elements
         obabel -ipdb {rname}_restored_e.pdb -opdbqt -O {rname}.pdbqt --partialcharge gasteiger -xr -xp -xc''')
     if not rigid:
-        fj.write(f'''        python ../../01_Workflow/utilities/create_flex_res.py {rname}.pdbqt {dockX} {dockY} {dockZ}
+        fh.write(f'''
+        python ../../01_Workflow/utilities/create_flex_res.py {rname}.pdbqt {dockX} {dockY} {dockZ}
         ''')
 
 

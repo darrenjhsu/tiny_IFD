@@ -49,7 +49,7 @@ if args.config is not None:
     for line in cont:
         try:
             print(line)
-            if line.split('=')[0] in ['parallelGrid', 'parallelDock', 'parallelAntechamber', 'parallelPrepareComplex', 'parallelEM', 'parallelcpptraj', 'parallelMDR', 'parallelXGBoost', 'dockingMode']:
+            if line.split('=')[0] in ['parallelGrid', 'parallelDock', 'parallelAntechamber', 'parallelPrepareComplex', 'parallelEM', 'parallelcpptraj', 'parallelMDR', 'parallelXGBoost']:
                 try:
                     config[line.split('=')[0]] = int(line.split('=')[1].strip())
                 except:
