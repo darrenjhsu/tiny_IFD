@@ -124,7 +124,7 @@ g.write('source ~/.andesrc\n\n\n')
 
 for ii in range(config['parallelGrid']):
     fh.append(open(f'../03_Gridmaps/script/prepDock{ii}.sh','w'))
-    g.write(f'srun -n1 -N1 -c1 sh prepDock{ii}.sh & \n')
+    g.write(f'srun -n1 -N1 -c1 -s sh prepDock{ii}.sh & \n')
 
 g.write('wait\n\n')
 g.write('echo "`date`: All done!\n\n"')
@@ -250,10 +250,10 @@ else:
 for ii in range(config['parallelPrepareComplex']):
     if rigid:
         fh.append(open(f'../05_Refinement/script/prepareComplex{ii}.sh','w'))
-        g.write(f'srun -n1 -N1 -c1 sh prepareComplex{ii}.sh & \n')
+        g.write(f'srun -n1 -N1 -c1 -s sh prepareComplex{ii}.sh & \n')
     else:
         gh.append(open(f'../05_Refinement/script/prepareFlexComplex{ii}.sh','w'))
-        ih.write(f'srun -n1 -N1 -c1 sh prepareFlexComplex{ii}.sh & \n')
+        ih.write(f'srun -n1 -N1 -c1 -s sh prepareFlexComplex{ii}.sh & \n')
 
 if rigid:
     g.write('wait\n\n\n')
@@ -283,10 +283,10 @@ fh = []
 for ii in range(config['parallelPrepareComplex']):
     fh.append(open(f'../05_Refinement/script/prepareComplex_openmm{ii}.sh','w'))
     if rigid:
-        g.write(f'srun -n1 -N1 -c1 sh prepareComplex_openmm{ii}.sh & \n')
+        g.write(f'srun -n1 -N1 -c1 -s sh prepareComplex_openmm{ii}.sh & \n')
     else: 
         # This is actually wrong, we need a prepareFlexComplex_openmm thing
-        ih.write(f'srun -n1 -N1 -c1 sh prepareComplex_openmm{ii}.sh & \n')
+        ih.write(f'srun -n1 -N1 -c1 -s sh prepareComplex_openmm{ii}.sh & \n')
 
 if rigid:
     g.write('wait\n\n')
