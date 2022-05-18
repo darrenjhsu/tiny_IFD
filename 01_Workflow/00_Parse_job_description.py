@@ -284,7 +284,8 @@ for ii in range(config['parallelPrepareComplex']):
     fh.append(open(f'../05_Refinement/script/prepareComplex_openmm{ii}.sh','w'))
     if rigid:
         g.write(f'srun -n1 -N1 -c1 sh prepareComplex_openmm{ii}.sh & \n')
-    else:
+    else: 
+        # This is actually wrong, we need a prepareFlexComplex_openmm thing
         ih.write(f'srun -n1 -N1 -c1 sh prepareComplex_openmm{ii}.sh & \n')
 
 if rigid:
