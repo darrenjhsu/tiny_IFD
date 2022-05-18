@@ -1,0 +1,85 @@
+
+{
+  "Perf_assumption": 40000, 
+  "EM": {
+         "N-rep": 1,
+         "files": {
+           "-osf":".out",
+           "-rsf":".rst",
+           "-xsf":".nc"
+         },
+         "cntrl": {
+           "DoRATTLE": 0,
+           "RattleTol": 1.0e-6,
+           "dt": 0.0001,
+           "nstlim": 100000,
+           "ntpr": 2000,
+           "ntwr": 100000,
+           "ntwx": 2000,
+           "temp0": 0.0,
+           "ntt": 3,
+           "gamma_ln": 1.0,
+           "igseed": 913578,
+           "ioutfm": 1
+         },
+         "pptd": {
+           "igb": 1
+         }
+        },
+  "QR": {
+         "N-rep": 2,
+         "Max-wait": 10,
+         "Vary-wait": true,
+         "files": {
+           "-osf":".out",
+           "-rsf":".rst",
+           "-xsf":".nc"
+         },
+         "cntrl": {
+           "irest": 1,  
+           "DoRATTLE": 0,
+           "RattleTol": 1.0e-6,
+           "dt": 0.002,
+           "nstlim": 200000,
+           "ntpr": 10000,
+           "ntwr": 200000,
+           "ntwx": 10000,
+           "temp0": 310.0,
+           "ntt": 3,
+           "gamma_ln": 1.0,
+           "igseed": 913578,
+           "ioutfm": 1
+         },
+         "pptd": {
+           "igb": 1
+         }
+        },
+  "MD": {
+         "N-rep": 20,
+         "Max-wait": 110,
+         "Vary-wait": true,
+         "files": {
+           "-osf":".out",
+           "-rsf":".rst",
+           "-xsf":".nc"
+         },
+         "cntrl": {
+           "irest": 1,  
+           "DoRATTLE": 0,
+           "RattleTol": 1.0e-6,
+           "dt": 0.002,
+           "nstlim": 4000000,
+           "ntpr": 50000,
+           "ntwr": 500000,
+           "ntwx": 50000,
+           "temp0": 310.0,
+           "ntt": 3,
+           "gamma_ln": 1.0,
+           "igseed": -1,
+           "ioutfm": 0
+         },
+         "pptd": {
+           "igb": 1
+         }
+        }
+}

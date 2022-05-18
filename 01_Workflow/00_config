@@ -1,0 +1,11 @@
+
+dockingMode=rigid
+parallelGrid=32
+parallelDock=10
+parallelAntechamber=10
+parallelPrepareComplex=32
+parallelEM=10
+parallelcpptraj=10
+parallelMDR=10
+parallelXGBoost=10
+
