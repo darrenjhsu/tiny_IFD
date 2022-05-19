@@ -187,6 +187,20 @@ def overlap_mol(test_xyz, ref_xyz=None, test_vdW=1.8, ref_vdW=1.8, ref_grid=None
     ratio = np.sum(np.any(dist < 0, axis=1)) / len(dist)
     return ratio, ref_grid
 
+            
+def res2string(res):
+    res_code = {
+        'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C',
+        'GLU': 'E', 'GLN': 'Q', 'GLY': 'G', 'HIS': 'H',
+        # 'HID': 'H', 'HIE': 'H', 'HIP': 'H',
+        'ILE': 'I', 'LEU': 'L', 'LYS': 'K', 'MET': 'M', 'PHE': 'F',
+        'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W', 'TYR': 'Y',
+        'VAL': 'V', 'NME': ' ', 'ACE': ' ', 'LIG': '' }
+    res_string = ''
+    for r in res:
+        res_string += res_code[r]
+    return res_string
+        
 
 class mdgxTrajectory:
     def __init__(self, trjFile, outFile, rstFile, ioutfm):
@@ -288,7 +302,7 @@ class mdgxTrajectory:
                     t3 = time.time()
                 self.output = ReadLog(self.outFile)
                 self.getSASA(comp, ligand_res, ligandAtomConfig) 
-                self.getHBHC(comp, ligandAtomConfig)
+                self.getHBHC(comp, ligand_res, ligandAtomConfig)
                 self.output['proteinRMSD'] = self.proteinRMSD
                 self.output['proteinCoreRMSD'] = self.proteinCoreRMSD
                 if Profile:
@@ -398,14 +412,17 @@ class mdgxTrajectory:
             return dist_term
 
 
-    def getHBHC(self, mol, lac): # lac = ligandAtomConfig
+    def getHBHC(self, mol, ligand_res=None, lac=None): # lac = ligandAtomConfig
                 # TODO: Use the new definition for CSP contacts
+        assert (lac is not None) or (ligand_res is not None), "Must provied either ligandAtomConfig or ligand_res"
         try:
             AllHB = []
             AllHC = []
-            #C_lig = mol.top.select(f'residue {ligand_res} and element C')
-            #C_pro = mol.top.select(f'not residue {ligand_res} and element C')
-            lig_atoms = lac['lig']
+            if ligand_res is not None:
+                C_lig = mol.top.select(f'residue {ligand_res} and element C')
+                C_pro = mol.top.select(f'not residue {ligand_res} and element C')
+            if lac is not None:
+                lig_atoms = lac['lig']
             #lig_atoms = mol.top.select(f'resid {ligand_res}')
 
             for idx, frame in enumerate(mol):
@@ -420,7 +437,10 @@ class mdgxTrajectory:
                         #print(mol.xyz[idx][hbond[0]]*10, mol.xyz[idx][hbond[2]]*10, xh=mol.xyz[idx][hbond[1]]*10, use_angle=True)
                         score += self.HB(mol.xyz[idx][hbond[0]]*10, mol.xyz[idx][hbond[2]]*10, xh=mol.xyz[idx][hbond[1]]*10, use_angle=False)
                 AllHB.append(score)
-                AllHC.append(self.HC(mol.xyz[idx]*10, lac['lig_allCSP'], lac['pro_allCSP']))
+                if ligand_res is not None:
+                    AllHC.append(self.HC(mol.xyz[idx]*10, C_lig, C_pro))
+                else: # lac is not None
+                    AllHC.append(self.HC(mol.xyz[idx]*10, lac['lig_allCSP'], lac['pro_allCSP']))
             self.output['HBond'] = np.array(AllHB)
             self.output['Contact'] = np.array(AllHC)
             self.hasHBHC = True
@@ -725,8 +745,8 @@ class Ligand:
 #         print(f'{len(self.qualifiedList)} of the {self.numPoses} for ligand {self.ligandName} qualified')
             self.qualifiedTruth[simPrefix] = [(x in self.qualifiedList[simPrefix]) for x in self.poseNames]
 #             print(success[simPrefix])
-        print(self.qualifiedList)
-        print(self.qualifiedTruth)
+        #print(self.qualifiedList)
+        #print(self.qualifiedTruth)
         self.prmtop = f'{folderMetadata["prmtopFolder"]}/{self.ligandName}.prmtop'
 
         if not os.path.exists(self.prmtop):
@@ -990,7 +1010,7 @@ class Ligand:
         self.frame = {}
         self.length = {}
         for ii in range(self.numPoses):
-            print(f'In pose {ii}')
+            #print(f'In pose {ii}')
             f, l = self.Poses[self.poseRanks[ii]].gatherMagnitude()
             if ii == 0:
                 for simPrefix in self.simulationPrefixes:
@@ -1287,7 +1307,7 @@ class MolecularDynamicsRefinement:
 
     def calculateRMSD_parallel(self): # invoke calculateRMSD_parallel in each ligand
         # First check if there are ligand pickles with processed RMSD - saves time
-
+        #if 1:
         try:
             self.loadLigands()
         except:
@@ -1421,6 +1441,7 @@ class MolecularDynamicsRefinement:
                 pickle.dump(self.Ligands[sysName], f)
                 
     def loadLigands(self):
+        #print('In MDR.loadLigands')
         for sysName in self.sysNames:
             with open(f'{self.saveFolder}/{sysName}.pkl', 'rb') as f:
                 self.Ligands[sysName] = pickle.load(f)

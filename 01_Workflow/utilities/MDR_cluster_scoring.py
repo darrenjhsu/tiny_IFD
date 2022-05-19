@@ -35,8 +35,11 @@ MDR.calculateRMSD_parallel()
 #print(MDR.Ligands[sys.argv[1].split('/')[-1]].Poses)
 
 min_RMSD = np.inf
-for p in MDR.Ligands[sys.argv[1].split('/')[-1]].Poses:
-    for t in MDR.Ligands[sys.argv[1].split('/')[-1]].Poses[p].traj['MD']:
+
+job = sys.argv[1].split('/')[-1]
+
+for p in MDR.Ligands[job].Poses:
+    for t in MDR.Ligands[job].Poses[p].traj['MD']:
         if len(t.RMSD) == 0:
             pass
         elif np.min(t.RMSD) < min_RMSD:
@@ -47,12 +50,28 @@ for p in MDR.Ligands[sys.argv[1].split('/')[-1]].Poses:
 CE = cpptrajEnergy(rootFolder=f'{sys.argv[1]}/cpptraj')
 try:
     append_cpptraj_to_MDR(MDR, CE)
+    print("Append cpptraj successful")
 except:
     pass
 
 MDR.saveLigands()
 
 
+with open('RMSD2.5_rate.txt','w') as f:
+    try:
+        agg = MDR.Ligands[job].gatherRMSD()
+        f.write(f'{np.sum(agg[0] < 2.5) / len(agg[0])}')
+    except:
+        f.write(f'0.000')
+
+with open('rstring.txt','w') as f:
+    try:
+        mol = mdtraj.load(MDR.Ligands[job].crystalPose, top = MDR.Ligands[job].prmtop)
+        rstring = res2string([r.name for r in list(mol.top.residues)])
+        f.write(rstring)
+    except:
+        pass
+    
 #try:
 #    t = gimme_best_pose(MDR, ligand=sys.argv[1].split('/')[-1], top_select=5, plot=False,
 #                    #metric="traj.output['extravdW'] + traj.output['extraCoul'] + traj.output['Solvent']",
