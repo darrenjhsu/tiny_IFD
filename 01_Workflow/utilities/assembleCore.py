@@ -41,22 +41,48 @@ class PDB:
             print(f'There are {len([x for x in self.target_resid if x in self.close_res])} atoms (including hydrogen) in these residues')
             print('')
 
-    def determine_threshold(self, target_atoms=850, verbose=False):
+    def determine_threshold(self, target_atoms=850, target_residues=None, verbose=False):
+        
         self.included_atoms = 0
+        self.included_residues = 0
         self.thres = 5.0
-        while (self.included_atoms < target_atoms):
-            self.thres += 0.02
-            self.determine_close_residues(thres=self.thres, verbose=False)
-            self.included_atoms = self.join_segments(verbose=False)
-        # In case included atoms is larger than 928, revert one step
-        if self.included_atoms > 925:
-            self.thres -= 0.02
-            self.determine_close_residues(thres=self.thres, verbose=False)
-            self.included_atoms = self.join_segments(verbose=False)
+        if target_residues is None: # Use target atoms
+            while (self.included_atoms < target_atoms):
+                if round(self.thres * 100) % 100 == 0:
+                    print(f'{self.thres:.2f} A ...')
+                self.thres += 0.01
+                self.determine_close_residues(thres=self.thres, verbose=False)
+                self.included_atoms, self.included_residues = self.join_segments(verbose=False)
+            # In case included atoms is larger than 928, revert one step
+            if self.included_atoms > 925:
+                self.thres -= 0.01
+                self.determine_close_residues(thres=self.thres, verbose=False)
+                self.included_atoms, self.included_residues = self.join_segments(verbose=False)
+        elif type(target_residues) == int:
+            while (self.included_residues < target_residues):
+                if round(self.thres * 100) % 100 == 0:
+                    print(f'{self.thres:.2f} A ...')
+                self.thres += 0.01
+                self.determine_close_residues(thres=self.thres, verbose=False)
+                self.included_atoms, self.included_residues = self.join_segments(verbose=False)
+                if self.included_atoms > 928:
+                    print(f'Reached atom limit while determining residue threshold at {self.included_residues} residues.')
+                    break
+            # In case included atoms is larger than 928, revert one step
+            if self.included_atoms > 925:
+                self.thres -= 0.01
+                self.determine_close_residues(thres=self.thres, verbose=False)
+                self.included_atoms, self.included_residues = self.join_segments(verbose=False)
+        else:
+            raise ValueError("target_residues must be an int")
         #print(self.segments)
         # print(f'There are {len(self.close_res)} residues in {self.target} closer than {self.thres} A to {self.lig}')
         # print(f'There are {len([x for x in self.target_resid if x in self.close_res])} atoms (including hydrogen) in these residues')
-        print(f'Determined threshold to be {self.thres:.2f} A')
+        print(f'Determined threshold to be {self.thres:.2f} A', end=' ')
+        if target_residues is None:
+            print('using number of atom threshold.')
+        else:
+            print('using number of residue threshold.')
         self.print_joined_segments()
 
     def join_segments(self, verbose=True):
@@ -120,16 +146,21 @@ class PDB:
         if len(self.segment) > 0:
             self.segments.append(self.segment)
             self.segment = []
+
+        #self.cont_res = np.unique(self.cont_res)
         self.cont_res.sort()
+        #print(np.unique(self.cont_res))
+        self.cont_res = np.unique(self.cont_res)
 
         self.est_receptor_atoms = len([x for x in self.target_resid if x in self.cont_res])
         self.est_cap_atoms = 12 * len(self.segments)
         self.est_lig_atoms = self.lig_num_atoms
         self.est_included_atoms = self.est_receptor_atoms + self.est_cap_atoms + self.est_lig_atoms
+        self.est_num_residues = len(self.cont_res) + 2 * len(self.segments) + 1
         if verbose:
             self.print_joined_segments()
 
-        return self.est_included_atoms
+        return self.est_included_atoms, self.est_num_residues
 
     def print_joined_segments(self):
 
@@ -145,6 +176,7 @@ class PDB:
         print(f'There are {len(self.cont_res)} residues that will be included in the core')
         print(f'Rough estimate of how many atoms there will be: {self.est_included_atoms}')
         print(f'  with {self.est_receptor_atoms} receptor atoms, {self.est_cap_atoms} cap atoms, and {self.est_lig_atoms} ligand atoms')
+        print(f'  or {len(self.cont_res)} receptor residues, {2 * len(self.segments)} cap residues, and 1 ligand residues (total {self.est_num_residues} residues).')
 
 
     def write_all_PDBs(self, dry_run=True, path='./', write_script=False, overwrite_coor_file=None):

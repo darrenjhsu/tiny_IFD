@@ -20,6 +20,8 @@ parser.add_argument('--parallelcpptraj', nargs='?', type=int, default=1, help="P
 parser.add_argument('--parallelMDR', nargs='?', type=int, default=1, help="Split post processing of MD simulations to N chunks")
 parser.add_argument('--parallelXGBoost', nargs='?', type=int, default=1, help="Split XGBoost training of features to N chunks")
 parser.add_argument('--dockingMode', type=str, default='rigid', help="Whether to use flexible docking (changes some residue orientations) (rigid|flex)")
+parser.add_argument('--assembleMode', type=str, default='atoms', help="Use what strategy to assemble the core (atoms|residues)")
+parser.add_argument('--assembleTarget', type=int, default=920, help="How many atoms / residues you want included in the simulations (including caps and ligand). Recommended: 920 for atoms, 60 for residues")
 parser.add_argument('--config', nargs='?', type=str, default=None, help="File logging locations of executables")
 
 args = parser.parse_args()
@@ -35,6 +37,8 @@ config['parallelcpptraj'] = args.parallelcpptraj
 config['parallelMDR'] = args.parallelMDR
 config['parallelXGBoost'] = args.parallelXGBoost
 config['dockingMode'] = args.dockingMode
+config['assembleMode'] = args.assembleMode
+config['assembleTarget'] = args.assembleTarget
 
 
 os.makedirs('../03_Gridmaps', exist_ok=True)
@@ -49,7 +53,7 @@ if args.config is not None:
     for line in cont:
         try:
             print(line)
-            if line.split('=')[0] in ['parallelGrid', 'parallelDock', 'parallelAntechamber', 'parallelPrepareComplex', 'parallelEM', 'parallelcpptraj', 'parallelMDR', 'parallelXGBoost']:
+            if line.split('=')[0] in ['parallelGrid', 'parallelDock', 'parallelAntechamber', 'parallelPrepareComplex', 'parallelEM', 'parallelcpptraj', 'parallelMDR', 'parallelXGBoost', 'assembleTarget']:
                 try:
                     config[line.split('=')[0]] = int(line.split('=')[1].strip())
                 except:
@@ -59,13 +63,26 @@ if args.config is not None:
         except:
             pass
 
-# Short hand for flexibleDocking:
+# Short hands:
 if config['dockingMode'] == 'rigid':
     rigid = True
 elif config['dockingMode'] == 'flex':
     rigid = False
 else:
     raise ValueError('dockingMode must be either rigid or flex')
+if config['assembleMode'] == 'atoms':
+    aMode = 'atoms'
+elif config['assembleMode'] == 'residues':
+    aMode = 'residues'
+else:
+    raise ValueError('assembleMode much be either atoms or residues')
+aThres = config['assembleTarget']
+
+if aMode == 'atoms' and aThres < 200:
+    print('Warning: assemble mode is by atoms but you set an assemble target to a small number')
+elif aMode == 'residues' and aThres > 200:
+    print('Warning: assemble mode is by residues but you set an assemble target to a large number')
+
 
 print(config)
 
@@ -135,7 +152,7 @@ for idx, row in Receptors.iterrows():
     os.makedirs(f'../03_Gridmaps/{dname}', exist_ok=True)
     write_preppdbqt(fh[idx % config['parallelGrid']], config, dname, row["Receptor_name"], row["Receptor_file_name"], row["dockX"], row["dockY"], row["dockZ"], rigid)
     write_fix_protein(f'../03_Gridmaps/{dname}/fix_protein.in', row["Receptor_name"])
-    write_assembly(f'../03_Gridmaps/{dname}/assembly.py',row["Receptor_name"], row["dockX"], row["dockY"], row["dockZ"])
+    write_assembly(f'../03_Gridmaps/{dname}/assembly.py',row["Receptor_name"], row["dockX"], row["dockY"], row["dockZ"], aMode, aThres)
 for ii in range(config['parallelGrid']):
     fh[ii].close()
 

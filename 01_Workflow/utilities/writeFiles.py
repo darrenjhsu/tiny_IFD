@@ -87,7 +87,7 @@ savepdb mol {rname}_full_h.pdb
 ''')
 
 
-def write_assembly(fname, rname, X, Y, Z):
+def write_assembly(fname, rname, X, Y, Z, aMode='atoms', aThres=920):
     with open(fname, 'w') as f:
         f.write(f'''
 import glob
@@ -103,8 +103,7 @@ except:
     lig_num_atoms = 60
 
 proj = PDB('{rname}_restored_h.pdb', np.array([[{X}, {Y}, {Z}]]), lig_num_atoms)
-
-proj.determine_threshold(target_atoms=920)
+proj.determine_threshold(target_{aMode}={aThres})
 proj.write_all_PDBs(dry_run = False, path=f'./assembly/', write_script=True)
 ''')
 

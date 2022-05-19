@@ -1,7 +1,9 @@
 
-dockingMode=flex
+dockingMode=rigid
 parallelGrid=32
 parallelDock=10
+assembleMode=residues
+assembleTarget=60
 parallelAntechamber=10
 parallelPrepareComplex=32
 parallelEM=10
