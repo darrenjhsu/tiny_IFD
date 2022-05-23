@@ -158,29 +158,30 @@ if NGPU == 1: # Also write local script for execution
         f.write('~/Tools/amber_rhel8_2/bin/mdgx.cuda -O -i mdgxGPU_MD_0.in -Reckless &')
         f.write('wait')
 
-NGPU_list = np.linspace(0, NGPU, NGPU//900 + 1, dtype=int)
-for idx in range(len(NGPU_list[:-1]):
+NGPU_list = np.linspace(0, NGPU, (NGPU+899)//900 + 1, dtype=int)
+NGPU_list = [(x+5)//6*6 for x in NGPU_list]
+for idx in range(len(NGPU_list[:-1])):
     NGPU_this = NGPU_list[idx+1] - NGPU_list[idx]
     with open(f'Ssubmit_MD_{idx}.sh','w') as f:
         f.write(f'''#!/bin/bash
-    #BSUB -P STF006
-    #BSUB -W 2:00
-    #BSUB -nnodes {int(np.ceil(NGPU_this / 6))}
-    #BSUB -J mdgx_test
-    module load gcc/9.3.0 cuda/11.0.3 cmake readline zlib bzip2 boost netcdf-c netcdf-cxx netcdf-fortran parallel-netcdf  openblas netlib-lapack fftw
-    
-    ~/miniconda/bin/conda init bash
-    source ~/.bashrc
-    conda activate amber
-    
-    
-    for i in {{{NGPU_list[idx]}..{NGPU_list[idx+1]-1}}};
-    do
-      jsrun -n 1 -g 1 -a 1 -c 1 --smpiargs="off" ~/Tools/amber_rhel8_2/bin/mdgx.cuda -O -i mdgxGPU_MD_${{i}}.in -Reckless &
-    done
-    wait
-    ''')
-else:
+#BSUB -P STF006
+#BSUB -W 2:00
+#BSUB -nnodes {int(np.ceil(NGPU_this / 6))}
+#BSUB -J mdgx_test
+module load gcc/9.3.0 cuda/11.0.3 cmake readline zlib bzip2 boost netcdf-c netcdf-cxx netcdf-fortran parallel-netcdf  openblas netlib-lapack fftw
+
+~/miniconda/bin/conda init bash
+source ~/.bashrc
+conda activate amber
+
+
+for i in {{{NGPU_list[idx]}..{NGPU_list[idx+1]-1}}};
+do
+  jsrun -n 1 -g 1 -a 1 -c 1 --smpiargs="off" ~/Tools/amber_rhel8_2/bin/mdgx.cuda -O -i mdgxGPU_MD_${{i}}.in -Reckless &
+done
+wait
+''')
+
     
 
 

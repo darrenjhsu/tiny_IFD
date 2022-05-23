@@ -3,9 +3,12 @@ def xgboost_config():
     c = {}
     c['n_estimators'] = 100
     c['max_depth'] = 6
-    c['gamma'] = 0.3
+    c['gamma'] = 0.2
+    c['additional_suffix'] = 'allcol_notempo'
+    
     c['suffix'] = f'{c["n_estimators"]}_{c["max_depth"]}_{c["gamma"]}'
-
+    
+    c['suffix'] += c['additional_suffix']
 
     c['norm_cols'] = [ # Normal columns
         'Dihedral', 'Elec', 'vdW', 'Solvent', 
@@ -32,7 +35,7 @@ def xgboost_config():
     'allChangeSASA', 'ligandChangeSASA', 'ligandCSPSASA', 'ligandCHSASA', 'ligandPolarSASA',
     'HBond', 'Contact',
     'proteinRMSD', 'proteinCoreRMSD', 
-    'templateOverlap', 'temporalRMSD',
+    'templateOverlap', #'temporalRMSD',
 ]
 
 #    c['norm_cols'] = [ # Simple columns
@@ -47,5 +50,7 @@ def xgboost_config():
     c['glob_cols']= []
     c['raw_cols'] = ['proteinRMSD', 'proteinCoreRMSD', 'templateOverlap', 'temporalRMSD']
     c['raw_cols'] = []
+
+    print(c)
 
     return c
