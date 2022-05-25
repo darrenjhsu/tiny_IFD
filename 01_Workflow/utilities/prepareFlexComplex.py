@@ -110,6 +110,7 @@ complex_structure = ps0 + ligand_structure
 print('Complex assembled')
 ligand_structure.save(f'{output_reference}/ligand.inpcrd', overwrite=True)
 ligand_structure.save(f'{output_reference}/ligand.prmtop', overwrite=True)
+ligand_structure.save(f'{output_reference}/ligand.pdb', overwrite=True)
 ps0.save(f'{output_reference}/protein.inpcrd', overwrite=True)
 ps0.save(f'{output_reference}/protein.prmtop', overwrite=True)
 

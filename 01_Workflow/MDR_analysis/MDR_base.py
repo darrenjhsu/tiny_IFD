@@ -4,6 +4,8 @@ import glob
 import json
 import copy
 import mdtraj
+#import MDAnalysis as mda
+from rdkit import Chem
 import numpy as np
 import time
 import pandas as pd
@@ -767,6 +769,16 @@ class Ligand:
         if not os.path.exists(self.initialPose):
             self.initialPose = glob.glob(folderMetadata["inpcrdFolder"] + '*')[0]
 
+        try:
+            mol = Chem.MolFromPDBFile(f'{folderMetadata["referenceFolder"]}/ligand.pdb') 
+            mol2 = Chem.RemoveHs(mol)
+            self.SMILES = Chem.MolToSmiles(mol2)
+            print(f'Ligand smiles is {self.SMILES}')
+        except:
+            print('Getting smiles of the ligand failed!')
+            self.SMILES = None
+
+
         initialComp = mdtraj.load(self.initialPose, top=self.prmtop)
         if self.ligand_res == '-1':
             self.ligand_res = str(initialComp.n_residues-1)
@@ -1129,6 +1141,7 @@ class Ligand:
         self.numPoses = LIG.numPoses
         self.poseNames = LIG.poseNames
         self.poseRanks = LIG.poseRanks
+        self.SMILES = LIG.SMILES
         self.ligandAtomConfig = LIG.ligandAtomConfig
         self.ligandGraphConfig = LIG.ligandGraphConfig
         self.ligand_res = LIG.ligand_res

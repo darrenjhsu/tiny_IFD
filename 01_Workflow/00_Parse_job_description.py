@@ -74,11 +74,13 @@ if config['assembleMode'] == 'atoms':
     aMode = 'atoms'
 elif config['assembleMode'] == 'residues':
     aMode = 'residues'
+elif config['assembleMode'] == 'protein_atoms':
+    aMode = 'protein_atoms'
 else:
-    raise ValueError('assembleMode much be either atoms or residues')
+    raise ValueError('assembleMode much be either atoms or residues, protein_atoms')
 aThres = config['assembleTarget']
 
-if aMode == 'atoms' and aThres < 200:
+if (aMode == 'atoms' or aMode == 'protein_atoms') and aThres < 200:
     print('Warning: assemble mode is by atoms but you set an assemble target to a small number')
 elif aMode == 'residues' and aThres > 200:
     print('Warning: assemble mode is by residues but you set an assemble target to a large number')
