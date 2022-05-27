@@ -48,11 +48,12 @@ for p in MDR.Ligands[job].Poses:
 
 
 CE = cpptrajEnergy(rootFolder=f'{sys.argv[1]}/cpptraj')
+
 try:
     append_cpptraj_to_MDR(MDR, CE)
     print("Append cpptraj successful")
 except:
-    pass
+    print("Append cpptraj failed!")
 
 MDR.saveLigands()
 

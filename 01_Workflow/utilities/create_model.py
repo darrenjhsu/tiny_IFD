@@ -51,10 +51,13 @@ OUTPUT = []
 for ligand in MDR.Ligands.keys():
     # print(ligand)
     for pose in MDR.Ligands[ligand].Poses.keys():
-        for idx, traj in enumerate(MDR.Ligands[ligand].Poses[pose].traj['MD']):
-            if traj.hasRMSD:
-                RMSD.append(traj.RMSD[10:])
-                OUTPUT.append(traj.output[10:])
+        try:
+            for idx, traj in enumerate(MDR.Ligands[ligand].Poses[pose].traj['MD']):
+                if traj.hasRMSD:
+                    RMSD.append(traj.RMSD[10:])
+                    OUTPUT.append(traj.output[10:])
+        except:
+            pass
 
 try:
     RMSD = np.array(RMSD).flatten()

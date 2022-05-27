@@ -357,6 +357,7 @@ class mdgxTrajectory:
             self.output['apoProteinSASA'] = proteinAtomSASA.sum(1)
             self.output['freeLigandSASA'] = ligandAtomSASA.sum(1) 
             self.output['complexSASA'] = complexAtomSASA.sum(1)
+            zeros = np.zeros_like(complexAtomSASA)
             self.output['allChangeSASA'] = self.output['complexSASA'] - self.output['apoProteinSASA'] - self.output['freeLigandSASA']
             #print('Done with regular sasa')
             #print(complexAtomSASA.shape)
@@ -365,17 +366,33 @@ class mdgxTrajectory:
             self.output['ligandChangeSASA'] = self.output['ligandInComplexSASA'] - self.output['freeLigandSASA']
             #print('Done with ligand sasa')
             self.output['proteinChangeSASA'] = self.output['proteinInComplexSASA'] - self.output['apoProteinSASA']
-            self.output['ligandCSPSASA'] = complexAtomSASA[:, lac['lig_CSP']].sum(1)
-            self.output['proteinCSPSASA'] = complexAtomSASA[:, lac['pro_CSP']].sum(1) 
-            self.output['complexCSPSASA'] = self.output['ligandCSPSASA'] + self.output['proteinCSPSASA']
+            if len(lac['lig_CSP']) > 0:
+                self.output['ligandCSPSASA'] = complexAtomSASA[:, lac['lig_CSP']].sum(1)
+                self.output['proteinCSPSASA'] = complexAtomSASA[:, lac['pro_CSP']].sum(1) 
+                self.output['complexCSPSASA'] = self.output['ligandCSPSASA'] + self.output['proteinCSPSASA']
+            else:
+                self.output['ligandCSPSASA'] = zeros
+                self.output['proteinCSPSASA'] = zeros
+                self.output['complexCSPSASA'] = zeros
+ 
             #print('Done with CSP sasa')
-            self.output['ligandCHSASA'] = complexAtomSASA[:, lac['lig_CH']].sum(1)
-            self.output['proteinCHSASA'] = complexAtomSASA[:, lac['pro_CH']].sum(1)
-            self.output['complexCHSASA'] = self.output['ligandCHSASA'] + self.output['proteinCHSASA']
+            if len(lac['lig_CH']) > 0:
+                self.output['ligandCHSASA'] = complexAtomSASA[:, lac['lig_CH']].sum(1)
+                self.output['proteinCHSASA'] = complexAtomSASA[:, lac['pro_CH']].sum(1)
+                self.output['complexCHSASA'] = self.output['ligandCHSASA'] + self.output['proteinCHSASA']
+            else:
+                self.output['ligandCHSASA'] = zeros
+                self.output['proteinCHSASA'] = zeros
+                self.output['complexCHSASA'] = zeros
             #print('Done with CH sasa')
-            self.output['ligandPolarSASA'] = complexAtomSASA[:, lac['lig_polar']].sum(1)
-            self.output['proteinPolarSASA'] = complexAtomSASA[:, lac['pro_polar']].sum(1)
-            self.output['complexPolarSASA'] = self.output['ligandPolarSASA'] + self.output['proteinPolarSASA']
+            if len(lac['lig_polar']) > 0:
+                self.output['ligandPolarSASA'] = complexAtomSASA[:, lac['lig_polar']].sum(1)
+                self.output['proteinPolarSASA'] = complexAtomSASA[:, lac['pro_polar']].sum(1)
+                self.output['complexPolarSASA'] = self.output['ligandPolarSASA'] + self.output['proteinPolarSASA']
+            else:
+                self.output['ligandPolarSASA'] = zeros 
+                self.output['proteinPolarSASA'] = zeros
+                self.output['complexPolarSASA'] = zeros
             #print('Done with polar sasa')
             #if coreRes is not None:
                 #print(f'core residues are {coreRes}')
