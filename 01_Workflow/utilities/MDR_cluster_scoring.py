@@ -72,6 +72,12 @@ with open('rstring.txt','w') as f:
         f.write(rstring)
     except:
         pass
+
+with open('SMILES.txt','w') as f:
+    try:
+        f.write(MDR.Ligands[job].SMILES)
+    except:
+        pass
     
 #try:
 #    t = gimme_best_pose(MDR, ligand=sys.argv[1].split('/')[-1], top_select=5, plot=False,

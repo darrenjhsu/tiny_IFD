@@ -421,7 +421,7 @@ with open('../06_Analysis/script/MDR_analysis_all.sh', 'w') as f,\
         write_MDR_analysis(f'../06_Analysis/{jname}/MDR_analysis.sh', jname)
         f.write(f'cd ../{jname}\n')
         f.write(f'echo {jname}\n')
-        f.write(f'sh MDR_analysis.sh > MDR.log\n')
+        f.write(f'sh MDR_analysis.sh > MDR.log 2>&1 \n')
         if idx % config["parallelMDR"] == 0:
             if idx > 0:
                 g.write('wait\n\n')
@@ -429,7 +429,7 @@ with open('../06_Analysis/script/MDR_analysis_all.sh', 'w') as f,\
             g.write('date\n')
             g.write(f'echo "Batch {batch_counter}"\n')
         g.write(f'cd ../{jname}\n')
-        g.write('srun -n1 -N1 -c32 sh MDR_analysis.sh > MDR.log &\n')
+        g.write('srun -n1 -N1 -c32 sh MDR_analysis.sh > MDR.log 2>&1 &\n')
     if idx % config["parallelMDR"] != 0:
         g.write('wait\n\n')
     g.write('echo "`date`: All jobs done!"\n\n')
@@ -455,7 +455,7 @@ with open('../06_Analysis/script/create_xgboost_model_all.sh', 'w') as f,\
         write_create_xgboost_model(f'../06_Analysis/{jname}/create_model.sh', jname)
         f.write(f'cd ../{jname}\n')
         f.write(f'echo {jname}\n')
-        f.write(f'sh create_model.sh > create_model.log\n')
+        f.write(f'sh create_model.sh > create_model.log 2>&1\n')
         if idx % config["parallelXGBoost"] == 0:
             if idx > 0:
                 g.write('wait\n\n')
@@ -463,7 +463,7 @@ with open('../06_Analysis/script/create_xgboost_model_all.sh', 'w') as f,\
             g.write('date\n')
             g.write(f'echo "Batch {batch_counter}"\n')
         g.write(f'cd ../{jname}\n')
-        g.write('srun -n1 -N1 -c32 sh create_model.sh > create_model.log &\n')
+        g.write('srun -n1 -N1 -c32 sh create_model.sh > create_model.log 2>&1 &\n')
     if idx % config["parallelXGBoost"] != 0:
         g.write('wait\n\n')
     g.write('echo "`date`: All jobs done!"\n\n')
