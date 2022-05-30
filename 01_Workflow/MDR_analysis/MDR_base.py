@@ -357,7 +357,7 @@ class mdgxTrajectory:
             self.output['apoProteinSASA'] = proteinAtomSASA.sum(1)
             self.output['freeLigandSASA'] = ligandAtomSASA.sum(1) 
             self.output['complexSASA'] = complexAtomSASA.sum(1)
-            zeros = np.zeros_like(complexAtomSASA)
+            zeros = np.zeros_like(complexAtomSASA.sum(1))
             self.output['allChangeSASA'] = self.output['complexSASA'] - self.output['apoProteinSASA'] - self.output['freeLigandSASA']
             #print('Done with regular sasa')
             #print(complexAtomSASA.shape)
@@ -366,30 +366,33 @@ class mdgxTrajectory:
             self.output['ligandChangeSASA'] = self.output['ligandInComplexSASA'] - self.output['freeLigandSASA']
             #print('Done with ligand sasa')
             self.output['proteinChangeSASA'] = self.output['proteinInComplexSASA'] - self.output['apoProteinSASA']
-            if len(lac['lig_CSP']) > 0:
+            try:
                 self.output['ligandCSPSASA'] = complexAtomSASA[:, lac['lig_CSP']].sum(1)
                 self.output['proteinCSPSASA'] = complexAtomSASA[:, lac['pro_CSP']].sum(1) 
                 self.output['complexCSPSASA'] = self.output['ligandCSPSASA'] + self.output['proteinCSPSASA']
-            else:
+            except Exception as e:
+                print(f' CSP SASA failed: {e}')
                 self.output['ligandCSPSASA'] = zeros
                 self.output['proteinCSPSASA'] = zeros
                 self.output['complexCSPSASA'] = zeros
  
             #print('Done with CSP sasa')
-            if len(lac['lig_CH']) > 0:
+            try:
                 self.output['ligandCHSASA'] = complexAtomSASA[:, lac['lig_CH']].sum(1)
                 self.output['proteinCHSASA'] = complexAtomSASA[:, lac['pro_CH']].sum(1)
                 self.output['complexCHSASA'] = self.output['ligandCHSASA'] + self.output['proteinCHSASA']
-            else:
+            except Exception as e:
+                print(f' CH SASA failed: {e}')
                 self.output['ligandCHSASA'] = zeros
                 self.output['proteinCHSASA'] = zeros
                 self.output['complexCHSASA'] = zeros
             #print('Done with CH sasa')
-            if len(lac['lig_polar']) > 0:
+            try:
                 self.output['ligandPolarSASA'] = complexAtomSASA[:, lac['lig_polar']].sum(1)
                 self.output['proteinPolarSASA'] = complexAtomSASA[:, lac['pro_polar']].sum(1)
                 self.output['complexPolarSASA'] = self.output['ligandPolarSASA'] + self.output['proteinPolarSASA']
-            else:
+            except Exception as e:
+                print(f' Polar SASA failed: {e}')
                 self.output['ligandPolarSASA'] = zeros 
                 self.output['proteinPolarSASA'] = zeros
                 self.output['complexPolarSASA'] = zeros
@@ -400,8 +403,8 @@ class mdgxTrajectory:
             #    self.output['complexCoreSASA'] = complexResSASA[:, coreRes].sum(1)
             #    self.output['changeCoreSASA'] = self.output['complexCoreSASA'] - self.output['proteinCoreSASA'] - self.output['ligandSASA']
             self.hasSASA = True
-        except:
-            print("SASA failed!") 
+        except Exception as e:
+            print(f"SASA failed: {e}") 
 
 
     def HC(self, xyz, C_lig, C_pro, d0=3.8, detail=False):
@@ -787,9 +790,10 @@ class Ligand:
             self.initialPose = glob.glob(folderMetadata["inpcrdFolder"] + '*')[0]
 
         try:
-            mol = Chem.MolFromPDBFile(f'{folderMetadata["referenceFolder"]}/ligand.pdb') 
-            mol2 = Chem.RemoveHs(mol)
-            self.SMILES = Chem.MolToSmiles(mol2)
+            mol = Chem.MolFromMolFile(f'{folderMetadata["referenceFolder"]}/ligand.mol', sanitize=False)
+            Chem.SanitizeMol(mol,Chem.SanitizeFlags.SANITIZE_FINDRADICALS|Chem.SanitizeFlags.SANITIZE_KEKULIZE|Chem.SanitizeFlags.SANITIZE_SETAROMATICITY|Chem.SanitizeFlags.SANITIZE_SETCONJUGATION|Chem.SanitizeFlags.SANITIZE_SETHYBRIDIZATION|Chem.SanitizeFlags.SANITIZE_SYMMRINGS,catchErrors=True)
+            #mol2 = Chem.RemoveHs(mol)
+            self.SMILES = Chem.MolToSmiles(mol)
             print(f'Ligand smiles is {self.SMILES}')
         except:
             print('Getting smiles of the ligand failed!')
