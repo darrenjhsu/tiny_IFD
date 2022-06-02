@@ -269,6 +269,7 @@ class mdgxTrajectory:
        
                 ligand_heavy_atoms = crystalComp.top.select(f"residue {ligand_res} and not symbol H")
                 protein_heavy_atoms = crystalComp.top.select(f"not residue {ligand_res} and not symbol H")
+                CA_atoms = crystalComp.top.select("name CA and not residue {ligand_res}")
                 core_res = np.where(np.sqrt(((crystalComp.xyz[0][crystalComp.top.select('name CA and protein')]*10 - np.array(dockCenter))**2).sum(1)) < 9)[0]
                 if len(core_res) > 0:
                     core_idx = crystalComp.top.select(f'residue {" ".join([str(x) for x in core_res])} and not symbol H')
@@ -279,17 +280,17 @@ class mdgxTrajectory:
                 #print(f'ligand heavy atoms index: {ligand_heavy_atoms}')
                 for xyz in comp.xyz:
                     R_this, LT_this, rR_this = ALIGN_A_RMSD_B(xyz*10, referenceXYZ*10,
-                                            range(0, systemLen-lig_len), ligand_heavy_atoms, ligandGraphConfig, return_both_kinds=True)
+                                            CA_atoms, ligand_heavy_atoms, ligandGraphConfig, return_both_kinds=True)
                                             #range(0, systemLen-lig_len), range((systemLen-lig_len), systemLen))
                     R.append(R_this)
                     rR.append(rR_this)
                     LT.append(LT_this)
                     PR_this, _ = ALIGN_A_RMSD_B(xyz*10, referenceXYZ*10,
-                                                range(0, systemLen-lig_len), protein_heavy_atoms)
+                                                CA_atoms, protein_heavy_atoms)
                     PR.append(PR_this)
                     if core_idx is not None:
                         PCR_this, _ = ALIGN_A_RMSD_B(xyz*10, referenceXYZ*10,
-                                                    range(0, systemLen-lig_len), core_idx)
+                                                    CA_atoms, core_idx)
                         PCR.append(PCR_this)
                         #print("PCR actually worked!")
                 self.RMSD = np.array(R)
@@ -637,9 +638,12 @@ class Pose:
                 self.lig_len = len(comp.top.select(f"residue {self.ligand_res}"))
                 self.sys_len = comp.n_atoms
                 ligand_heavy_atoms = crystalComp.top.select(f"residue {self.ligand_res} and not symbol H")
-                comp.superpose(crystalComp, frame=0, atom_indices=range(0,self.sys_len - self.lig_len - 10))
+                CA_atoms = comp.top.select(f'name CA and not residue {self.ligand_res}')
+                #comp.superpose(crystalComp, frame=0, atom_indices=range(0,self.sys_len - self.lig_len - 10))
+                comp.superpose(crystalComp, frame=0, atom_indices=CA_atoms)
                 self.initialRMSD, _ = ALIGN_A_RMSD_B(comp.xyz[0]*10, crystalComp.xyz[0]*10, 
-                                                     range(0, self.sys_len - self.lig_len), ligand_heavy_atoms, ligandGraphConfig)
+                                                     CA_atoms, ligand_heavy_atoms, ligandGraphConfig)
+                                                     #range(0, self.sys_len - self.lig_len), ligand_heavy_atoms, ligandGraphConfig)
                                                     #range(0, systemLen-lig_len), range((systemLen-lig_len), systemLen))
                 #self.initialRMSD = mdtraj.rmsd(comp, crystalComp, frame=0, atom_indices=range(crystalComp.n_atoms-self.lig_len, crystalComp.n_atoms))*10
                  
