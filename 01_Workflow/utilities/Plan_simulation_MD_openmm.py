@@ -158,7 +158,7 @@ if NGPU == 1: # Also write local script for execution
         f.write('~/Tools/amber_rhel8_2/bin/mdgx.cuda -O -i mdgxGPU_MD_0.in -Reckless &')
         f.write('wait')
 
-NGPU_list = np.linspace(0, NGPU, (NGPU+899)//900 + 1, dtype=int)
+NGPU_list = np.linspace(0, NGPU, (NGPU+1000)//1000 + 1, dtype=int)
 NGPU_list = [(x+5)//6*6 for x in NGPU_list]
 for idx in range(len(NGPU_list[:-1])):
     NGPU_this = NGPU_list[idx+1] - NGPU_list[idx]

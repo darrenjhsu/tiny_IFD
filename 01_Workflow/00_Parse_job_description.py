@@ -257,7 +257,7 @@ for idx, row in Jobs.iterrows():
         pass
     write_antechamber(fh[idx % config['parallelAntechamber']], jname, lname, dname)
 
-for ii in range(config['parallelDock']):
+for ii in range(config['parallelAntechamber']):
     fh[ii].close()
 
 # Write complex assembly script
