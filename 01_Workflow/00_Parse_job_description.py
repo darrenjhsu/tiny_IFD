@@ -185,7 +185,14 @@ g.write('echo "`date`: All done!\n\n"')
 g.close()
 
 
-with open(f'../04_Docking/script/check_docking.sh','w') as f:
+with open(f'../04_Docking/script/check_docking.sh','w') as f, open(f'../04_Docking/script/check_docking_andes.sh','w') as g:
+    g.write('#!/bin/bash\n')
+    g.write(f'#SBATCH -N 1\n')
+    g.write('#SBATCH -t 1:00:00\n')
+    g.write('#SBATCH -A STF006\n\n')
+    g.write('echo "`date`: Job starts"\n')
+    g.write('source ~/.andesrc\n\n\n')
+    g.write('mkdir docking_results\n')
     for idx, row in Jobs.iterrows():
         dname = f'{row["Receptor_name"]}_{row["dockX"]}_{row["dockY"]}_{row["dockZ"]}'
         lname = row["Ligand_name"]
@@ -197,6 +204,14 @@ with open(f'../04_Docking/script/check_docking.sh','w') as f:
             write_vina_flex_dock(fh[idx % config['parallelDock']], config, jname, dname, row["Receptor_name"], row["Ligand_name"], row["Ligand_file_name"], row['dockX'], row['dockY'], row['dockZ'])
             write_flex_assembly(f'../03_Gridmaps/{dname}/flex_assembly.py',row["Receptor_name"], jname, row["dockX"], row["dockY"], row["dockZ"])
         f.write(f'python ../../01_Workflow/utilities/check_dock.py {jname} {lname}.pdb\n')
+        g.write(f'srun -n1 -N1 -c1 -s python ../../01_Workflow/utilities/check_dock.py {jname} {lname}.pdb > docking_results/{jname}.txt & \n')
+        if (idx > 0) and (idx + 1) % 32 == 0:
+            g.write('wait\n\n')
+    g.write('wait\n\n')
+    g.write('echo "`date`: All done!\n\n"')
+    g.close()
+
+shutil.copyfile('utilities/check_docking.py', '../04_Docking/script/check_docking.py')
 
 for ii in range(config['parallelDock']):
     fh[ii].close()
