@@ -269,7 +269,7 @@ class mdgxTrajectory:
        
                 ligand_heavy_atoms = crystalComp.top.select(f"residue {ligand_res} and not symbol H")
                 protein_heavy_atoms = crystalComp.top.select(f"not residue {ligand_res} and not symbol H")
-                CA_atoms = crystalComp.top.select("name CA and not residue {ligand_res}")
+                CA_atoms = crystalComp.top.select(f"name CA and not residue {ligand_res}")
                 core_res = np.where(np.sqrt(((crystalComp.xyz[0][crystalComp.top.select('name CA and protein')]*10 - np.array(dockCenter))**2).sum(1)) < 9)[0]
                 if len(core_res) > 0:
                     core_idx = crystalComp.top.select(f'residue {" ".join([str(x) for x in core_res])} and not symbol H')
