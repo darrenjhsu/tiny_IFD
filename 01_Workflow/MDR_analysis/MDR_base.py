@@ -17,6 +17,7 @@ from calcWater_func import *
 from scipy.spatial import distance_matrix
 import networkx as nx
 from spyrmsd import rmsd as srmsd
+import oddt
 
 try:
     import cupy as cp
@@ -141,8 +142,8 @@ def ReadLog(fname):
 
 
 def Distribute_Lig_pose_RMSD(arg):
-    obj, crystalComp, templateLigandGrid, ligandAtomConfig, ligandGraphConfig = arg
-    obj.calculateRMSD(crystalComp, templateLigandGrid, ligandAtomConfig, ligandGraphConfig)
+    obj, crystalComp, templateLigandGrid, ligandAtomConfig, ligandGraphConfig, templatePharmacophore, ligandPharmacophore = arg
+    obj.calculateRMSD(crystalComp, templateLigandGrid, ligandAtomConfig, ligandGraphConfig, templatePharmacophore, ligandPharmacophore )
     return obj
 
 def readMDCRD(fname, natom):
@@ -216,6 +217,8 @@ class mdgxTrajectory:
         self.hasProteinCoreRMSD = False
         self.hasTemporalRMSD = False
         self.hasTemplateOverlap = False
+        self.hasElementContact = False
+        self.hasPharmacoOverlap = False
         self.hasTrjFile = False
         self.hasOutFile = False
         self.output = None
@@ -235,7 +238,7 @@ class mdgxTrajectory:
 #         self.rmsd = []
     
     def calculateRMSD(self, prmtop, crystalComp, lig_len, ligand_res, dockCenter, templateLigandGrid=None, 
-                      ligandAtomConfig=None, ligandGraphConfig=None): 
+                      ligandAtomConfig=None, ligandGraphConfig=None, templatePharmacophore=None, ligandPharmacophore=None): 
         # This function also logs the ligand trajectory even if RMSD calculation fails
         try:
             if (not self.hasRMSD):
@@ -265,8 +268,7 @@ class mdgxTrajectory:
                 PCR = [] # Protein core RMSD
                 LT = []
                 systemLen = crystalComp.n_atoms
-                referenceXYZ = crystalComp.xyz[0]
-       
+                referenceXYZ = crystalComp.xyz[0] 
                 ligand_heavy_atoms = crystalComp.top.select(f"residue {ligand_res} and not symbol H")
                 protein_heavy_atoms = crystalComp.top.select(f"not residue {ligand_res} and not symbol H")
                 CA_atoms = crystalComp.top.select(f"name CA and not residue {ligand_res}")
@@ -306,6 +308,7 @@ class mdgxTrajectory:
                 self.output = ReadLog(self.outFile)
                 self.getSASA(comp, ligand_res, ligandAtomConfig) 
                 self.getHBHC(comp, ligand_res, ligandAtomConfig)
+                self.getElementContact(comp, ligand_res)
                 self.output['proteinRMSD'] = self.proteinRMSD
                 self.output['proteinCoreRMSD'] = self.proteinCoreRMSD
                 if Profile:
@@ -330,9 +333,10 @@ class mdgxTrajectory:
                     self.hasLigandTrajectory = True
                     if templateLigandGrid is not None:
                         self.getTemplateOverlap(self.ligandTrajectory, templateLigandGrid)#, ligHeavyElementsvdW)
-                    self.getTemporalRMSD(self.ligandTrajectory)
+                    #self.getTemporalRMSD(self.ligandTrajectory)
+                    self.getPharmacoOverlap(templatePharmacophore, ligandPharmacophore)
                 
-                if np.all([self.hasRMSD, self.hasProteinRMSD, self.hasProteinCoreRMSD, self.hasSASA, self.hasHBHC, self.hasTemporalRMSD]):
+                if np.all([self.hasRMSD, self.hasProteinRMSD, self.hasProteinCoreRMSD, self.hasSASA, self.hasHBHC, self.hasElementContact, self.hasPharmacoOverlap]):
                     self.success = True
 
         except:
@@ -436,7 +440,6 @@ class mdgxTrajectory:
 
 
     def getHBHC(self, mol, ligand_res=None, lac=None): # lac = ligandAtomConfig
-                # TODO: Use the new definition for CSP contacts
         assert (lac is not None) or (ligand_res is not None), "Must provied either ligandAtomConfig or ligand_res"
         try:
             AllHB = []
@@ -470,6 +473,75 @@ class mdgxTrajectory:
         except:
             print('getHBHC failed!')
 
+    def getElementContact(self, mol, ligand_res):
+        try:
+            for epro in ['H','C','N','O','S']:
+                E_pro = mol.top.select(f'not residue {ligand_res} and element {epro}')
+                for elig in ['H','C','N','O','S','P',['F','Cl','Br','I']]:
+                    if type(elig) == list:
+                        E_lig = mol.top.select(f"residue {ligand_res} and element {' '.join(elig)}")
+                        key = f'{epro}-halo'
+                    else:
+                        E_lig = mol.top.select(f"residue {ligand_res} and element {elig}")
+                        key = f'{epro}-{elig}'
+                    if (len(E_pro) == 0) or (len(E_lig) == 0):
+                        self.output[key] = np.zeros(len(mol.xyz))
+                    else:
+                        score = [] 
+                        for idx, frame in enumerate(mol):
+                            score.append(self.HC(mol.xyz[idx]*10, E_lig, E_pro))    
+                        self.output[key] = np.array(score)
+            self.hasElementContact = True
+        except Exception as e:
+            print(f'getElementContact failed: {e}')
+        
+    def getPharmacoOverlap(self, tpcp, lpcp, verbose=False): #tpcp is templatePharmacophore, lpcp is ligand... 
+        try:
+            score_list = []
+            # Returns an overlap score
+            for xyz2 in self.ligandTrajectory:
+                score = []
+                for prop in ['ishydrophobe','isplus','isminus','isacceptor','isdonor','ishalogen']:
+                    if len(tpcp[prop]) * len(lpcp[prop]) > 0:
+                        dist = np.sqrt(((tpcp[prop][:,:,None] - xyz2[lpcp[prop]][:,:,None].T)**2).sum(1).min(1))
+                        for d in dist:
+                            if d < 1:
+                                score.append(1.0)
+                            elif d > 2:
+                                score.append(0.0)
+                            else:
+                                score.append(2-d)
+                        if verbose:
+                            print(f'{prop}: {np.sqrt(((tpcp[prop][:,:,None] - xyz2[lpcp[prop]][:,:,None].T)**2).sum(1).min(1))}')
+                    elif verbose:
+                        print(f'{prop}: One or both molecules have no such pharmacophore')
+                
+                if len(tpcp['rings']) * len(lpcp['rings']) > 0:
+                    ring1 = tpcp['rings']
+                    ring2 = np.array([np.mean(xyz2[x],axis=0) for x in lpcp['rings']])
+            
+                    dist = np.sqrt(((ring1[:,:,None] - ring2[:,:,None].T)**2).sum(1).min(1))
+                    for d in dist:
+                        if d < 1:
+                            score.append(1.0)
+                        elif d > 2:
+                            score.append(0.0)
+                        else:
+                            score.append(2-d)
+                    if verbose:
+                        print(f'rings: {np.sqrt(((ring1[:,:,None] - ring2[:,:,None].T)**2).sum(1).min(1))}')
+                elif verbose:
+                    print(f'rings: One or both molecules have no rings')
+                    # print(ring1, ring2)
+                if verbose:
+                    print(score)
+                score_list.append(np.sum(score))
+            self.output['pharmacoOverlap'] = np.array(score_list)
+            self.hasPharmacoOverlap = True
+        except Exception as e:
+            print(f'getPharmacoOverlap failed: {e}')
+            self.output['pharmacoOverlap'] = 0.0
+ 
     def getBridgeWaterHB(self, mol):
         try:
             self.output['BridgeWaterHB'] = calcWater(mol, printResult=False, processFrame=-1, returnHBscore=True)
@@ -533,7 +605,7 @@ class mdgxTrajectory:
         self.hasProteinRMSD = TRJ.hasProteinRMSD
         self.hasProteinCoreRMSD = TRJ.hasProteinCoreRMSD
         self.hasTemplateOverlap = TRJ.hasTemplateOverlap
-        self.hasTemporalRMSD = TRJ.hasTemporalRMSD
+        #self.hasTemporalRMSD = TRJ.hasTemporalRMSD
 #         if self.hasRMSD:
         self.RMSD = TRJ.RMSD
         try:
@@ -545,6 +617,8 @@ class mdgxTrajectory:
         self.temporalRMSD = TRJ.temporalRMSD
         self.hasSASA = TRJ.hasSASA
         self.hasHBHC = TRJ.hasHBHC
+        self.hasElementContact = TRJ.hasElementContact
+        self.hasPharmacoOverlap = TRJ.hasPharmacoOverlap
         self.hasBridgeWaterHB = TRJ.hasBridgeWaterHB 
         self.ioutfm = TRJ.ioutfm
         self.hasTrjFile = TRJ.hasTrjFile
@@ -628,7 +702,8 @@ class Pose:
 #         self.initialRMSD = []
         
     def calculateRMSD(self, crystalComp, templateLigandGrid=None, 
-                      ligandAtomConfig=None, ligandGraphConfig=None): 
+                      ligandAtomConfig=None, ligandGraphConfig=None,
+                      templatePharmacophore=None, ligandPharmacophore=None): 
         # calculate RMSD for the initial pose and then for each traj in EM, QR and MD
         try:
             t0 = time.time()
@@ -655,7 +730,7 @@ class Pose:
                     print(' ')
             for simPrefix in self.simulationPrefixes:
                 for ii in self.traj[simPrefix]:
-                    ii.calculateRMSD(self.prmtop, crystalComp, self.lig_len, self.ligand_res, self.dockCenter, templateLigandGrid, ligandAtomConfig, ligandGraphConfig)
+                    ii.calculateRMSD(self.prmtop, crystalComp, self.lig_len, self.ligand_res, self.dockCenter, templateLigandGrid, ligandAtomConfig, ligandGraphConfig, templatePharmacophore, ligandPharmacophore)
             t1 = time.time()
             displayString = f'  Done with {self.poseName:18s}: '
             for simPrefix in self.simulationPrefixes:
@@ -808,13 +883,30 @@ class Ligand:
         if self.ligand_res == '-1':
             self.ligand_res = str(initialComp.n_residues-1)
 
+        try:
+            mol_list = oddt.toolkit.readfile('pdb', self.templateLigandFile)
+            for mol_file in mol_list:
+                mol_oddt = mol_file
+            self.templatePharmacophore = self.getTemplatePharmacophore(mol_oddt)
+        except Exception as e:
+            print(f'Setting template pharmacophore failed: {e}')
+            self.templatePharmacophore = None
+        try:
+            mol_list = oddt.toolkit.readfile('pdb', f'{folderMetadata["referenceFolder"]}/ligand.pdb')
+            for mol_file in mol_list:
+                mol_oddt2 = mol_file
+            self.ligandPharmacophore = self.getPharmacophore(mol_oddt2)
+        except Exception as e:
+            print(f'Setting ligand pharmacophore failed: {e}')
+            self.ligandPharmacophore = None
+
         self.ligandAtomConfig = self.getLigandAtomConfig(initialComp)
 
         self.ligandGraphConfig = self.getLigandGraphConfig(initialComp)
 
         print(f'We have determined for this ligand its residue number is {self.ligand_res}')
 
-        print(self.templateLigandFile)
+        #print(self.templateLigandFile)
 
         templateLigandComp = mdtraj.load(self.templateLigandFile)
 
@@ -844,7 +936,7 @@ class Ligand:
         self.length = {}
 
         
-        self.LTA = LigandTrajectoryAggregate()
+        #self.LTA = LigandTrajectoryAggregate()
 
     def getLigandAtomConfig(self, mol):
         protein_residue_list = [
@@ -967,6 +1059,43 @@ class Ligand:
         # an is "atomic number", and G is the "graph"
         # These are for the spyrmsd calculations
 
+    def getTemplatePharmacophore(self, mol):
+        # Input mol is an oddt mol atoms object
+        # Returns a dict of pharmacophores and their indices:
+        pcp = {}
+        for prop in ['ishydrophobe','isplus','isminus','isacceptor','isdonor','ishalogen']:
+            pcp[prop] = mol.atom_dict['coords'][mol.atom_dict[prop]]
+        pcp['rings'] = mol.ring_dict['centroid']
+        
+        return pcp
+
+    def getPharmacophore(self, mol, lig_sel=None):
+        # Input mol is an oddt mol atoms object
+        # Returns a dict of pharmacophores and their indices:
+        
+        if lig_sel is not None:
+            lig_set = set(lig_sel)
+        
+        pcp = {}
+        pcp['rings'] = []
+        # Simple atom properties
+        for prop in ['ishydrophobe','isplus','isminus','isacceptor','isdonor','ishalogen']:
+            if lig_sel is None:
+                pcp[prop] = np.where(mol.atom_dict[prop])[0]
+            else:
+                oddt_set = set(np.argwhere(mol.atom_dict[prop]).flatten())
+                pcp[prop] = np.array(list(oddt_set.intersection(set(lig_set))))
+        # (Aromatic) ring properties - instead of 
+        for ring in mol.ring_dict:
+            if lig_sel is None:
+                pcp['rings'].append(np.where(np.sqrt(((mol.atom_dict['coords'] - ring['centroid'])**2).sum(1)) < 1.6)[0])
+            else:
+                oddt_set = set(np.argwhere(np.sqrt(((mol.atom_dict['coords'] - ring['centroid'])**2).sum(1)) < 1.6).flatten())
+                if len(oddt_set.intersection(set(lig_set))) > 0:
+                    pcp['rings'].append(list(oddt_set.intersection(set(lig_set))))
+        # pcp['rings'] = mol.ring_dict[['centroid','vector']]
+        
+        return pcp
 
 
     def calculateRMSD(self): # Invoke calculateRMSD in each pose
@@ -1003,7 +1132,7 @@ class Ligand:
                 self.ligand_res = str(crystalComp.n_residues-1)
 
             pool = mp.Pool()
-            lr = pool.map(Distribute_Lig_pose_RMSD, ((self.Poses[self.poseRanks[ii]], crystalComp, self.templateLigandGrid, self.ligandAtomConfig, self.ligandGraphConfig) for ii in range(self.numPoses)))
+            lr = pool.map(Distribute_Lig_pose_RMSD, ((self.Poses[self.poseRanks[ii]], crystalComp, self.templateLigandGrid, self.ligandAtomConfig, self.ligandGraphConfig, self.templatePharmacophore, self.ligandPharmacophore) for ii in range(self.numPoses)))
             pool.close()
             pool.join()
             for ii in range(self.numPoses):
@@ -1169,6 +1298,8 @@ class Ligand:
         self.SMILES = LIG.SMILES
         self.ligandAtomConfig = LIG.ligandAtomConfig
         self.ligandGraphConfig = LIG.ligandGraphConfig
+        self.templatePharmacophore = LIG.templatePharmacophore
+        self.ligandPharmacophore = LIG.ligandPharmacophore
         self.ligand_res = LIG.ligand_res
         self.nrep = {}
         for simPrefix in simulationPrefixes:

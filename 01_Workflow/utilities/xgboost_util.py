@@ -10,11 +10,11 @@ def normalize(df, return_reference=False):
     df_mean = df.mean(axis=0)
     df_std = df.std(axis=0)
     if not return_reference:
-        return (df-df_mean) / df_std
+        return (df-df_mean) / (df_std + 1e-7)
     else:
         return (df-df_mean) / df_std, df_mean, df_std
 def normalize_to_ref(df, ref_mean, ref_std):
-    return (df-ref_mean) / ref_std
+    return (df-ref_mean) / (ref_std + 1e-7)
 def concentrate(df, rmsd, thres, ratio=0.1):#, do_nothing_if_over = True):
     assert len(df) == len(rmsd), "df must be of same length to rmsd"
     rmsd_sel = rmsd <= thres

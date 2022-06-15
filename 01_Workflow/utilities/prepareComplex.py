@@ -105,6 +105,7 @@ ps0.save(f'{output_reference}/protein.prmtop', overwrite=True)
 
 complex_structure.save(f'{output_reference}/complex.inpcrd', overwrite=True)
 complex_structure.save(f'{output_reference}/complex.prmtop', overwrite=True)
+complex_structure.save(f'{output_reference}/complex.pdb', overwrite=True)
 complex_structure.save(f'{output_inpcrd}/{lig_id}.inpcrd', overwrite=True)
 
 

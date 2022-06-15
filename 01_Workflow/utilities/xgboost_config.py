@@ -4,26 +4,12 @@ def xgboost_config():
     c['n_estimators'] = 100
     c['max_depth'] = 6
     c['gamma'] = 0.2
-    c['additional_suffix'] = 'allcol_notempo'
+    c['additional_suffix'] = 'allcol_notempo_pharma'
     
     c['suffix'] = f'{c["n_estimators"]}_{c["max_depth"]}_{c["gamma"]}'
     
     c['suffix'] += c['additional_suffix']
 
-    c['norm_cols'] = [ # Normal columns
-        'Dihedral', 'Elec', 'vdW', 'Solvent', 
-        'ligBond', 'ligAngle', 'ligDihe', 
-        'ligvdW', 'ligvdW14', 'extravdW', #'extravdW14',
-        'apovdW', 'apovdW14',
-        # 'holovdW', 'holovdW14',
-        'ligelec', 'ligelec14', 'extraelec', #'extraelec14',
-        'apoelec', 'apoelec14',
-        # 'holoelec', 'holoelec14',
-        'changeSASA', 'changeCoreSASA', 
-        'HBond', 'Contact',
-        'proteinRMSD', 'proteinCoreRMSD', 
-        'templateOverlap', 'temporalRMSD',
-    ]
 
     c['norm_cols'] = [ 
     'Dihedral', 'Elec', 'vdW', 'Solvent', 
@@ -35,7 +21,12 @@ def xgboost_config():
     'allChangeSASA', 'ligandChangeSASA', 'ligandCSPSASA', 'ligandCHSASA', 'ligandPolarSASA',
     'HBond', 'Contact',
     'proteinRMSD', 'proteinCoreRMSD', 
-    'templateOverlap', #'temporalRMSD',
+    'templateOverlap', 'pharmacoOverlap',#'temporalRMSD',
+    'H-H', 'H-C', 'H-N',
+    'H-O', 'H-S', 'H-P', 'H-halo', 'C-H', 'C-C', 'C-N', 'C-O', 'C-S', 'C-P',
+    'C-halo', 'N-H', 'N-C', 'N-N', 'N-O', 'N-S', 'N-P', 'N-halo', 'O-H',
+    'O-C', 'O-N', 'O-O', 'O-S', 'O-P', 'O-halo', 'S-H', 'S-C', 'S-N', 'S-O',
+    'S-S', 'S-P', 'S-halo'
 ]
 
 #    c['norm_cols'] = [ # Simple columns

@@ -17,9 +17,11 @@ def write_preppdbqt(fh, config, dname, rname, rfname, dockX, dockY, dockZ, rigid
 def write_vina_dock(fh, config, jname, dname, rname, lname, lfname, dockX, dockY, dockZ):
     fh.write(f'''
         cd ../{jname}
-        obabel -ipdb ../../02_Input/{lfname} -opdb -O {lname}_d.pdb -d # Remove hydrogens that come with the ligand XRD
-        obabel -ipdb {lname}_d.pdb -opdbqt -O {lname}.pdbqt -p --partialcharge eem
-        obabel -ipdbqt {lname}.pdbqt -opdb -O {lname}.pdb -d
+        obabel -ipdb ../../02_Input/{lfname} -opdb -O {lname}_d.pdb -d # Remove hydrogens that may come with the ligand XRD
+        python ../../01_Workflow/utilities/center_ligand_for_docking.py {lname}_d.pdb {dockX} {dockY} {dockZ} {lname}_d_c.pdb # Center the ligand file to be used in docking
+        obabel -ipdb {lname}_d.pdb -opdbqt -O {lname}_d.pdbqt -p --partialcharge eem # Get an extra pdbqt (atom indices may change) for calculating RMSD in the subsequent analyses
+        obabel -ipdb {lname}_d_c.pdb -opdbqt -O {lname}.pdbqt -p --partialcharge eem # Get the pdbqt file for docking
+        obabel -ipdbqt {lname}_d.pdbqt -opdb -O {lname}.pdb -d # Get the extra pdb for calculating RMSD in the subseuqent analyses
         lig_atoms=`obabel -ipdb {lname}.pdb -opdb -h | grep "ATOM" | wc -l`
         echo "Ligand {lname} has $lig_atoms atoms including hydrogens"
         python ../../01_Workflow/utilities/vina_dock.py ../../03_Gridmaps/{dname}/{rname}.pdbqt {lname}.pdbqt {dockX} {dockY} {dockZ}
