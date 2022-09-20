@@ -540,7 +540,7 @@ class mdgxTrajectory:
             self.hasPharmacoOverlap = True
         except Exception as e:
             print(f'getPharmacoOverlap failed: {e}')
-            self.output['pharmacoOverlap'] = 0.0
+            self.output['pharmacoOverlap'] = np.zeros(len(self.ligandTrajectory))
  
     def getBridgeWaterHB(self, mol):
         try:
