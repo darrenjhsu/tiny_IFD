@@ -483,6 +483,31 @@ with open('../06_Analysis/script/create_xgboost_model_all.sh', 'w') as f,\
         g.write('wait\n\n')
     g.write('echo "`date`: All jobs done!"\n\n')
 
+# Individual xgboost classification models, many conditions
+with open('../06_Analysis/script/create_many_xgboost_models_andes.sh', 'w') as g: # A script for andes batch job
+    g.write('#!/bin/bash\n')
+    g.write(f'#SBATCH -N {config["parallelXGBoost"]}\n')
+    g.write('#SBATCH -t 1:00:00\n')
+    g.write('#SBATCH -A STF006\n\n')
+
+    g.write('echo "`date`: Job starts"\n')
+    g.write('source ~/.andesrc\n\n\n')
+    batch_counter = 0
+    for idx, row in Jobs.iterrows():
+        jname = row["Job_name"]
+        os.makedirs(f'../06_Analysis/{jname}', exist_ok=True)
+        write_create_many_xgboost_models(f'../06_Analysis/{jname}/create_many_models.sh', jname)
+        if idx % config["parallelXGBoost"] == 0:
+            if idx > 0:
+                g.write('wait\n\n')
+            batch_counter += 1
+            g.write('date\n')
+            g.write(f'echo "Batch {batch_counter}"\n')
+        g.write(f'cd ../{jname}\n')
+        g.write('srun -n1 -N1 -c32 sh create_many_models.sh > create_many_models.log &\n')
+    if idx % config["parallelXGBoost"] != 0:
+        g.write('wait\n\n')
+    g.write('echo "`date`: All jobs done!"\n\n')
 ## Individual xgboost regression models
 #with open('../06_Analysis/script/create_xgboost_regression_model_all.sh', 'w') as f,\
 #     open('../06_Analysis/script/create_xgboost_regression_model_andes.sh', 'w') as g: # A script for andes batch job

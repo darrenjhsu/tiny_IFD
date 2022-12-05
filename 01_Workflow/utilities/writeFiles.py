@@ -264,6 +264,10 @@ def write_create_xgboost_model(fname, jname):
     with open(fname, 'w') as f:
         f.write(f'python ../../01_Workflow/utilities/create_model.py {jname}')
 
+def write_create_many_xgboost_models(fname, jname):
+    with open(fname, 'w') as f:
+        f.write(f'python ../../01_Workflow/utilities/create_many_models.py {jname} ../../01_Workflow/utilities/xgboost_config_list.csv')
+
 def write_create_xgboost_regression_model(fname, jname):
     with open(fname, 'w') as f:
         f.write(f'python ../../01_Workflow/utilities/create_regression_model.py {jname}')
