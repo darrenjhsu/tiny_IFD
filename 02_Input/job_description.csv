@@ -1,0 +1,2 @@
+Job_name,Receptor_file_name,Ligand_file_name,Ref_receptor_file_name,dockX,dockY,dockZ,template_file
+7QBB-V1B-to-5R84,Receptors/7QBB-V1B-to-5R84/5R84_apo.pdb,Ligands/7QBB-V1B-to-5R84/7QBB_V1B_A.pdb,Ref_Receptors/7QBB-V1B-to-5R84/7QBB_holo.pdb,9.865,0.928,21.142,Ligands/7QBB-V1B-to-5R84/5R84_lig_ref.pdb
