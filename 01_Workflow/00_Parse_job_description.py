@@ -25,7 +25,6 @@ parser.add_argument('--assembleTarget', type=int, default=920, help="How many at
 parser.add_argument('--config', nargs='?', type=str, default=None, help="File logging locations of executables")
 
 args = parser.parse_args()
-print(args)
 
 config = {}
 config['parallelGrid'] = args.parallelGrid
@@ -52,7 +51,7 @@ if args.config is not None:
         cont = f.readlines()
     for line in cont:
         try:
-            print(line)
+            #print(line)
             if line.split('=')[0] in ['parallelGrid', 'parallelDock', 'parallelAntechamber', 'parallelPrepareComplex', 'parallelEM', 'parallelcpptraj', 'parallelMDR', 'parallelXGBoost', 'assembleTarget']:
                 try:
                     config[line.split('=')[0]] = int(line.split('=')[1].strip())
@@ -86,7 +85,6 @@ elif aMode == 'residues' and aThres > 200:
     print('Warning: assemble mode is by residues but you set an assemble target to a large number')
 
 
-print(config)
 
 # Load job description
 
@@ -124,8 +122,18 @@ print("All files in job description exist")
 
 Receptors = Jobs.drop(columns=['Ligand_file_name', 'Job_name', 'Ligand_name'])
 Receptors = Receptors.drop_duplicates()
-print(Receptors)
+#print(Receptors)
 
+if config['parallelGrid'] > len(Receptors):
+    print(f"parallelGrid is updated from {config['parallelGrid']} to {len(Receptors)}")
+    config['parallelGrid'] = min(config['parallelGrid'], len(Receptors))
+for item in ['parallelDock', 'parallelAntechamber', 'parallelEM', 'parallelcpptraj', 'parallelMDR', 'parallelXGBoost', 'parallelPrepareComplex']:
+    if config[item] > len(Jobs):
+        print(f"{item} is updated from {config[item]} to {len(Jobs)}")
+        config[item] = min(config[item], len(Jobs))
+
+
+print(config)
 
 try:
     os.mkdir('../03_Gridmaps/script')
@@ -168,7 +176,7 @@ except:
 
 fh = []  # File handle array
 
-g = open('../04_Docking/script/andes_dock.sh', 'w')
+g = open('../04_Docking/script/00_andes_dock.sh', 'w')
 g.write('#!/bin/bash\n')
 g.write(f'#SBATCH -N {config["parallelDock"]}\n')
 g.write('#SBATCH -t 1:00:00\n')
@@ -185,7 +193,7 @@ g.write('echo "`date`: All done!\n\n"')
 g.close()
 
 
-with open(f'../04_Docking/script/check_docking.sh','w') as f, open(f'../04_Docking/script/check_docking_andes.sh','w') as g:
+with open(f'../04_Docking/script/01_check_docking.sh','w') as f, open(f'../04_Docking/script/01_check_docking_andes.sh','w') as g:
     g.write('#!/bin/bash\n')
     g.write(f'#SBATCH -N 1\n')
     g.write('#SBATCH -t 1:00:00\n')
@@ -211,7 +219,7 @@ with open(f'../04_Docking/script/check_docking.sh','w') as f, open(f'../04_Docki
     g.write('echo "`date`: All done!\n\n"')
     g.close()
 
-shutil.copyfile('utilities/check_docking.py', '../04_Docking/script/check_docking.py')
+#shutil.copyfile('utilities/check_docking.py', '../04_Docking/script/02_check_docking.py')
 
 for ii in range(config['parallelDock']):
     fh[ii].close()
@@ -231,7 +239,7 @@ except:
 # Write antechamber script
 
 fh = []
-g = open('../05_Refinement/script/andes_antechamber.sh', 'w')
+g = open('../05_Refinement/script/00_andes_antechamber.sh', 'w')
 g.write('#!/bin/bash\n')
 g.write(f'#SBATCH -N {config["parallelAntechamber"]}\n')
 g.write('#SBATCH -t 2:00:00\n')
@@ -265,7 +273,7 @@ for ii in range(config['parallelAntechamber']):
 fh = []
 gh = []
 if rigid:
-    g = open('../05_Refinement/script/andes_prepareComplex.sh', 'w')
+    g = open('../05_Refinement/script/01_andes_prepareComplex.sh', 'w')
     g.write('#!/bin/bash\n')
     g.write(f'#SBATCH -N 1\n')
     g.write('#SBATCH -t 1:00:00\n')
@@ -273,7 +281,7 @@ if rigid:
     g.write('echo "`date`: Job starts"\n')
     g.write('source ~/.andesrc\n\n\n')
 else:
-    ih = open('../05_Refinement/script/andes_prepareFlexComplex.sh', 'w')
+    ih = open('../05_Refinement/script/01_andes_prepareFlexComplex.sh', 'w')
     ih.write('#!/bin/bash\n')
     ih.write(f'#SBATCH -N 1\n')
     ih.write('#SBATCH -t 1:00:00\n')
@@ -341,7 +349,7 @@ for ii in range(config['parallelPrepareComplex']):
     fh[ii].close()
 
 fh = []
-g = open('../05_Refinement/script/andes_EM.sh', 'w')
+g = open('../05_Refinement/script/02_andes_EM.sh', 'w')
 g.write('#!/bin/bash\n')
 g.write(f'#SBATCH -N {config["parallelEM"]}\n')
 g.write('#SBATCH -t 1:00:00\n')
@@ -364,17 +372,16 @@ for ii in range(config['parallelEM']):
     fh[ii].close()
 
 # Copy some files 
-shutil.copyfile('utilities/planEM.sh', '../05_Refinement/script/planEM.sh')
-shutil.copyfile('utilities/planMD_openmm.sh', '../05_Refinement/script/planMD_openmm.sh')
-shutil.copyfile('utilities/check_atom_num.sh', '../05_Refinement/script/check_atom_num.sh')
-shutil.copyfile('utilities/check_sims.py', '../05_Refinement/script/check_sims.py')
+shutil.copyfile('utilities/check_atom_num.sh', '../05_Refinement/script/03_check_atom_num.sh')
+shutil.copyfile('utilities/planMD_openmm.sh', '../05_Refinement/script/04_planMD_openmm.sh')
+shutil.copyfile('utilities/check_sims.py', '../05_Refinement/script/05_check_sims.py')
 
 
 # Write cpptraj script
 
-with open(f'../05_Refinement/script/gen_cpptraj_script.sh','w') as f,\
-     open(f'../05_Refinement/script/run_cpptraj_script.sh','w') as g,\
-     open(f'../05_Refinement/script/run_cpptraj_script_andes.sh','w') as h:
+with open(f'../05_Refinement/script/06_gen_cpptraj_script.sh','w') as f,\
+     open(f'../05_Refinement/script/07_run_cpptraj_script.sh','w') as g,\
+     open(f'../05_Refinement/script/07_run_cpptraj_script_andes.sh','w') as h:
     h.write('#!/bin/bash\n')
     h.write(f'#SBATCH -N {config["parallelcpptraj"]}\n')
     h.write('#SBATCH -t 1:00:00\n')

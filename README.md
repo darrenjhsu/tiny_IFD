@@ -207,6 +207,7 @@ parallelXGBoost=1           # Andes nodes for creating XGBoost models
 
 Those that are 1 are parallelized at the node level (each task uses 32 cores), 
 while those that are 32 are parallelized at the core level (each task uses 1 core).
+If you don't have enough jobs for the resources, these values are automatically reduced.
 
 Now go back to the root, you will see `03_Gridmaps/`, `04_Docking/`, `05_Refinement/`, and `06_Analysis/` folders.
 We will go into each folder and run something.
@@ -220,27 +221,39 @@ However, we still need the `.pdbqt` protein coordinates.
 ```bash
 cd 03_Gridmaps/script
 sh prepDock0.sh        # Cleans .pdb files and generate .pdbqt files
+# If you have a lot of jobs
+# sbatch andes_prepDock.sh
 ```
 
 ### Run docking
 
-Then, we perform actual docking in `04_Docking/`
+Then, we perform actual docking in `04_Docking/`.
+Note that scripts now have numbers before them - these are execution orders for your information.
 
 ```bash
 cd ../../
 cd 04_Docking/script
 sh dock0.sh            # Docks and prepares the protein core
-sh check_docking.sh    # Check docking result, RMSD in Angstroms. This is only meaningful when the provided ligand is the crystal structure
+# If you have a lot of jobs
+# sbatch 00_andes_dock.sh
+
+# This is only meaningful when the provided ligand is the crystal structure
+sh 01_check_docking.sh    # Check docking result, print RMSD in Angstroms. 
+# If you have a lot of jobs
+sh 01_check_docking_andes.sh
 ```
 
 ### Parametrize ligand
 
 After docking and before running MD, we need to parametrize ligand through antechamber.
+The `05_Refinement/script` folder is the most complex.
 
 ```bash
 cd ../../
 cd 05_Refinement/script
-sh antechamber0.sh          # Or in the case of multiple tasks, do sbatch andes_antechamber.sh
+sh antechamber0.sh          
+# If you have multiple jobs
+# sbatch 00_andes_antechamber.sh
 ```
 
 ### Generate complexes of ligand and truncated protein core
@@ -248,9 +261,13 @@ sh antechamber0.sh          # Or in the case of multiple tasks, do sbatch andes_
 Then we prepare complexes. Also, to use OpenMM's syntax for freezing atoms, we run a separate script.
 
 ```bash
-sh prepareComplex0.sh       # Or sbatch andes_prepareComplex.sh, and skip next line
+sh prepareComplex0.sh       # Or sbatch 01_andes_prepareComplex.sh, and skip next line
 sh prepareComplex_openmm0.sh
-sh check_atom_num.sh        # Check number of atoms in each system
+
+# If you have multiple jobs
+# sbatch 01_andes_prepareComplex.sh
+
+sh 02_check_atom_num.sh        # Check number of atoms in each system
 ```
 
 ### Energy minimization
@@ -259,17 +276,14 @@ Use OpenMM to minimize energy of the system
 
 ```bash
 sh energyMinimization0.sh   # Or sbatch andes_EM.sh
+
+# If you have multiple jobs
+# sbatch 03_andes_EM.sh
 ```
 
 ### Simulation with mdgx.cuda
 
-Now the fun begins! The `planEM.sh` is essentially a planner looking at how many systems you have.
-It will ask you how many GPUs you want to use, but for this phase we just do 1.
-
-```bash
-sh planEM.sh                # Enter 1 for using 1 GPU
-sh EM_script.sh             # If you look inside, it just creates folders, but this script is important! Otherwise mdgx.cuda will segfault
-```
+Now the fun begins! 
 
 And then, the majority of compute actually happens here. 
 I have lowered the `N-rep` in the `MD` stage in the `simulation_config.json` to 4
@@ -278,8 +292,9 @@ so that all compute fits in 1 GPU and finishes quickly.
 Ideally you want 20 replicas per pose and 8 ns simulations. 
 
 ```bash
-vim ../../01_Workflow/utilites/simulation_config.json # Read, and see what kind of parameters you can adjust
-sh planMD_openmm.sh         # Enter 1 for using 1 GPU
+# Read this file, and see what kind of parameters you can adjust - these are amber parameters
+vim ../../01_Workflow/utilites/simulation_config.json 
+sh 04_planMD_openmm.sh         # Enter 1 for using 1 GPU
 ```
 
 This generates `mdgxGPU_MD_0.in`, which is the input to `mdgx.cuda`, as well as `Ssubmit_MD_0.sh`, 
@@ -287,9 +302,10 @@ which is the job submission file for summit.
 Let's go to summit and actually do it.
 
 ```bash
-# On summit
+# On summit, with the environment ready
 sh MD_local.sh
-# bsub -q debug Ssubmit_MD_0.sh # If you need more than 1 GPU, then do this
+# If you need more than 1 GPU, then do this
+# bsub -q debug Ssubmit_MD_0.sh 
 ```
 
 This will take about 25 minutes to complete on 1 GPU
@@ -301,7 +317,7 @@ With the simulation done, we can check if there are divergent simulations that f
 It is alright to have some (like 4 - 5 for a total of 400).
 
 ```bash
-$ python check_sims.py
+$ python 05_check_sims.py
 
 There are 1 IFD cases.
 
@@ -316,20 +332,15 @@ Now, let's process the trajectories on Andes.
 First, generate the `cpptraj` scripts for each of the simulations
 
 ```bash
-sh gen_cpptraj_script.sh 
+sh 06_gen_cpptraj_script.sh 
 ```
 
 Then, depending on how many simulations you have, either do
 ```bash
 # For not a lot of simulations
-sh run_cpptraj_script.sh
-```
-
-or do 
-
-```bash
+sh 07_run_cpptraj_script.sh
 # For A LOT OF simulations
-sbatch run_cpptraj_script_andes.sh
+# sbatch 07_run_cpptraj_script_andes.sh
 ```
 
 ### The MDR refinement script and data structure

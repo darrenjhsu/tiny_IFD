@@ -152,11 +152,17 @@ for ii in range(NGPU):
         f.write(f'&end\n\n')
 
 
+with open(f'make_sim_folders.sh', 'w') as f:
+    f.write('#!/bin/bash\n')
+    for ii in sim_folder:
+        f.write(f'mkdir -p {ii}\n')
+
+
 if NGPU == 1: # Also write local script for execution
     with open(f'MD_local.sh', 'w') as f:
         f.write('#!/bin/bash\n\n')
-        f.write('mdgx.cuda -O -i mdgxGPU_MD_0.in -Reckless &')
-        f.write('wait')
+        f.write('sh make_sim_folders.sh\n')
+        f.write('mdgx.cuda -O -i mdgxGPU_MD_0.in -Reckless\n')
 
 NGPU_list = np.linspace(0, NGPU, (NGPU+999)//1000 + 1, dtype=int)
 NGPU_list = [(x+5)//6*6 for x in NGPU_list]
@@ -168,12 +174,9 @@ for idx in range(len(NGPU_list[:-1])):
 #BSUB -W 2:00
 #BSUB -nnodes {int(np.ceil(NGPU_this / 6))}
 #BSUB -J mdgx_test
-module load gcc/9.3.0 cuda/11.0.3 cmake readline zlib bzip2 boost netcdf-c netcdf-cxx netcdf-fortran parallel-netcdf  openblas netlib-lapack fftw
+module load gcc/9.3.0 cuda/11.0.3 cmake readline zlib bzip2 boost netcdf-c netcdf-cxx netcdf-fortran parallel-netcdf  openblas netlib-lapack fftw python
 
-~/miniconda/bin/conda init bash
-source ~/.bashrc
-conda activate amber
-
+sh make_sim_folders.sh
 
 for i in {{{NGPU_list[idx]}..{NGPU_list[idx+1]-1}}};
 do
