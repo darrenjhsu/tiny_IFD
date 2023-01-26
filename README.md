@@ -6,26 +6,31 @@ Light-weight induced fit docking pipeline through AmberTool's `mdgx.cuda`.
 You need the following software.
 
 1. AmberTools
-  - `tleap` for parametrizing peptides 
-  - `antechamber` for parametrizing the ligand 
-  - A modified version of `mdgx.cuda` - for code, see [here](https://github.com/darrenjhsu/mdgx_mod/tree/fix_atom) and below
-  - `cpptraj` for outputting features that the classification models will take
+    - `tleap` for parametrizing peptides 
+    - `antechamber` for parametrizing the ligand 
+    - A modified version of `mdgx.cuda` - for code, see [here](https://github.com/darrenjhsu/mdgx_mod/tree/fix_atom) and below
+    - `cpptraj` for outputting features that the classification models will take
 1. Python environment manager (conda highly recommended)
-1. Python packages - they should be in a separate environment 
-  - `openbabel` for conversion between formats
-  - `AutoDock Vina` for docking
-  - `rdkit` for various modeling tasks
-  - `mdtraj` for easy trajectory manipulation
-  - `OpenMM` for energy minimization (a version where we use this as the simulation engine is being developed) 
-  - `XGBoost` for classification model
-  - `spyrmsd` for symmetry corrected RMSD
-  - `oddt` for molecule modeling tasks
-  - `parmed` for molecule modeling tasks
+1. Python packages - they should be in a separate environment
+    - `openbabel` for conversion between formats
+    - `AutoDock Vina` for docking
+    - `rdkit` for various modeling tasks
+    - `mdtraj` for easy trajectory manipulation
+    - `OpenMM` for energy minimization (a version where we use this as the simulation engine is being developed) 
+    - `XGBoost` for classification model
+    - `spyrmsd` for symmetry corrected RMSD
+    - `oddt` for molecule modeling tasks
+    - `parmed` for molecule modeling tasks
+    - `numba` for parallel processing
+  
 
 ## Getting tinyIFD to work for OLCF users
 
-Note that, since we only need cuda when running `mdgx.cuda`, which requires us to be on Summit, the rest of the workflow can be done on Andes.
+Note that, since we only need cuda when running `mdgx.cuda`, which requires us to be on Summit, 
+the rest of the workflow can be done on Andes.
 However, this does require you to install AmberTools on both Andes and Summit.
+For the python packages, all of them can be on Andes.
+A python interpreter on Summit is necessary, but no fancy packages are required.
 
 ### Install python packages on Andes
 
@@ -61,9 +66,10 @@ conda activate $PWD/myenv
 Install python packages
 
 ```bash
-conda install numpy=1.22 openbabel vina rdkit mdtraj openmm xgboost spyrmsd oddt parmed=3.4.3
+conda install numpy=1.23 openbabel vina rdkit mdtraj openmm xgboost spyrmsd oddt parmed=3.4.3 numba
 ```
 
+Note that, `numpy` 1.23 is required for `np.int` in `vina`, and `parmed` 3.4.3 is required to *not* write `CONECT` records when outputting pdb files.
 
 ### Install AmberTools on Andes
 
@@ -132,6 +138,11 @@ export PATH=$PWD/bin:$PATH
 
 Please follow [this tutorial](https://github.com/darrenjhsu/mdgx_on_Summit) to do so.
 
+Also, it is helpful to have at least a python interpreter on Summit:
+
+```bash
+module load python
+```
 
 ## Tutorial with one docking case
 
@@ -273,22 +284,66 @@ Let's go to summit and actually do it.
 
 ```bash
 # On summit
-bsub -q debug Ssubmit_MD_0.sh
+sh MD_local.sh
+# bsub -q debug Ssubmit_MD_0.sh # If you need more than 1 GPU, then do this
 ```
 
-This will take about 25 minutes to complete, so in the meanwhile we can talk about other details.
-
-
+This will take about 25 minutes to complete on 1 GPU
 
 
 ### Process trajectories
 
+With the simulation done, we can check if there are divergent simulations that failed.
+It is alright to have some (like 4 - 5 for a total of 400).
+
+```bash
+$ python check_sims.py
+
+There are 1 IFD cases.
+
+Ligand: 7QBB-V1B-to-5R84 | 80 simulations | 80 finished | 80 succeeded | 0 failed (0.0 %)
+Total simulations: 80
+Total failed simulations: 0
+Total success simulations: 80
+Success percentage: 1.0
+```
+
+Now, let's process the trajectories on Andes.
+First, generate the `cpptraj` scripts for each of the simulations
+
+```bash
+sh gen_cpptraj_script.sh 
+```
+
+Then, depending on how many simulations you have, either do
+```bash
+# For not a lot of simulations
+sh run_cpptraj_script.sh
+```
+
+or do 
+
+```bash
+# For A LOT OF simulations
+sbatch run_cpptraj_script_andes.sh
+```
+
 ### The MDR refinement script and data structure
+
+With the data written by `cpptraj`, we then digest the entire set of simulations with the MDR data structure:
+
+```bash
+cd ../../06_Analysis/script
+sh MDR_analysis_all.sh  # Sequentially go through each docking job
+# or 
+# sbatch MDR_analysis_andes.sh  # Go through docking jobs in batches
+```
+
+This would take some time, usually 5 to 6 mins per round.
 
 ### Predicting docking poses after refinement
 
-
-
+Under construction.
 
 
 

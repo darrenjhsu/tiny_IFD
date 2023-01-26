@@ -18,8 +18,6 @@ except ImportError as e:
 from numba import jit, prange
 from sklearn.cluster import DBSCAN
 import matplotlib.pyplot as plt
-import nglview
-from nglview.player import TrajectoryPlayer
 from scipy.stats import rankdata
 
 
