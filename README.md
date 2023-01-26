@@ -240,7 +240,7 @@ sh dock0.sh            # Docks and prepares the protein core
 # This is only meaningful when the provided ligand is the crystal structure
 sh 01_check_docking.sh    # Check docking result, print RMSD in Angstroms. 
 # If you have a lot of jobs
-sh 01_check_docking_andes.sh
+# sh 01_check_docking_andes.sh
 ```
 
 ### Parametrize ligand
