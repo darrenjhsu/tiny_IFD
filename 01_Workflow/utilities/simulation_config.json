@@ -55,7 +55,7 @@
          }
         },
   "MD": {
-         "N-rep": 20,
+         "N-rep": 4,
          "Max-wait": 110,
          "Vary-wait": true,
          "files": {

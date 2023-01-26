@@ -1,13 +1,13 @@
 
 dockingMode=rigid
 parallelGrid=32
-parallelDock=41
+parallelDock=1
 assembleMode=protein_atoms
 assembleTarget=800
-parallelAntechamber=62
+parallelAntechamber=1
 parallelPrepareComplex=32
-parallelEM=62
-parallelcpptraj=62
-parallelMDR=123
-parallelXGBoost=62
+parallelEM=1
+parallelcpptraj=1
+parallelMDR=1
+parallelXGBoost=1
 
