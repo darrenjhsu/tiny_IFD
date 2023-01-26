@@ -172,9 +172,13 @@ Finally, in `02_Input/`, a `job_description.csv` file denotes all the tasks to b
 The filename is hardcoded for now. 
 
 
+
 ### Prepare input files
 
 I have prepared this one, but in general you want to align the target PDB to template PDB, and use the center of your template receptor's ligand as your docking center. A separate tutorial is in development.
+
+For the following steps, the example output is in the `output.tar`.
+
 
 ### Process input files
 
