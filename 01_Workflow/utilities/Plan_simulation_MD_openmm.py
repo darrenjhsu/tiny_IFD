@@ -155,7 +155,7 @@ for ii in range(NGPU):
 if NGPU == 1: # Also write local script for execution
     with open(f'MD_local.sh', 'w') as f:
         f.write('#!/bin/bash\n\n')
-        f.write('~/Tools/amber_rhel8_2/bin/mdgx.cuda -O -i mdgxGPU_MD_0.in -Reckless &')
+        f.write('mdgx.cuda -O -i mdgxGPU_MD_0.in -Reckless &')
         f.write('wait')
 
 NGPU_list = np.linspace(0, NGPU, (NGPU+999)//1000 + 1, dtype=int)
@@ -177,7 +177,7 @@ conda activate amber
 
 for i in {{{NGPU_list[idx]}..{NGPU_list[idx+1]-1}}};
 do
-  jsrun -n 1 -g 1 -a 1 -c 1 --smpiargs="off" ~/Tools/amber_rhel8_2/bin/mdgx.cuda -O -i mdgxGPU_MD_${{i}}.in -Reckless &
+  jsrun -n 1 -g 1 -a 1 -c 1 --smpiargs="off" mdgx.cuda -O -i mdgxGPU_MD_${{i}}.in -Reckless &
 done
 wait
 ''')

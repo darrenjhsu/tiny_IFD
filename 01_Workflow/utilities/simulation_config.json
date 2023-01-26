@@ -68,7 +68,7 @@
            "DoRATTLE": 0,
            "RattleTol": 1.0e-6,
            "dt": 0.002,
-           "nstlim": 4000000,
+           "nstlim": 1000000,
            "ntpr": 50000,
            "ntwr": 500000,
            "ntwx": 50000,

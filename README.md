@@ -8,7 +8,7 @@ You need the following software.
 1. AmberTools
   - `tleap` for parametrizing peptides 
   - `antechamber` for parametrizing the ligand 
-  - A modified version of `mdgx.cuda` - for code, see ![here](https://github.com/darrenjhsu/mdgx_mod/tree/fix_atom) and below
+  - A modified version of `mdgx.cuda` - for code, see [here](https://github.com/darrenjhsu/mdgx_mod/tree/fix_atom) and below
   - `cpptraj` for outputting features that the classification models will take
 1. Python environment manager (conda highly recommended)
 1. Python packages - they should be in a separate environment 
@@ -71,26 +71,32 @@ Now, let's install AmberTools on Andes.
 
 1. Get AmberTools source code (in my case it is called `AmberTools20.tar.bz2` and upon decompression it gives `amber20_src/`) from the website.
 1. Go to `amber20_src/AmberTools/src` and clone the modified mdgx code:
-```bash
-cd amber20_src/AmberTools/src
-git clone git@github.com:darrenjhsu/mdgx_mod.git
-```
+
+    ```bash
+    cd amber20_src/AmberTools/src
+    git clone git@github.com:darrenjhsu/mdgx_mod.git
+    ```
+
 1. Backup the original mdgx code and swap in this modified version
-```bash
-mv mdgx mdgx_bkp
-mv mdgx_mod mdgx
-cd mdgx
-git checkout fix_atom
-```
+
+    ```bash
+    mv mdgx mdgx_bkp
+    mv mdgx_mod mdgx
+    cd mdgx
+    git checkout fix_atom
+    ```
+
 1. Use `ccmake` to install AmberTools from `amber20_src`
-```bash
-# In amber20_src
-mkdir build_andes
-cd build_andes
-ccmake ..
-```
+
+    ```bash
+    # In amber20_src
+    mkdir build_andes
+    cd build_andes
+    ccmake ..
+    ```
 
 In the interactive panel, first do [c] to configure, then change the following:
+
 ```
 CMAKE_INSTALL_PREFIX            */path/to/amber20_src/build_andes
 COMPILER                        *GNU
@@ -124,7 +130,7 @@ export PATH=$PWD/bin:$PATH
 
 ### Install AmberTools (specifically mdgx) on Summit
 
-Please follow ![this tutorial](https://github.com/darrenjhsu/mdgx_on_Summit) to do so.
+Please follow [this tutorial](https://github.com/darrenjhsu/mdgx_on_Summit) to do so.
 
 
 ## Tutorial with one docking case
@@ -247,12 +253,14 @@ It will ask you how many GPUs you want to use, but for this phase we just do 1.
 
 ```bash
 sh planEM.sh                # Enter 1 for using 1 GPU
-sh EM_script.sh             # If you look inside, it just creates folders
+sh EM_script.sh             # If you look inside, it just creates folders, but this script is important! Otherwise mdgx.cuda will segfault
 ```
 
 And then, the majority of compute actually happens here. 
-I have lowered the `N-rep` in the `MD` stage in the `simulation_config.json` to 4, 
-so that all compute fits in 1 GPU. Ideally you want 20. 
+I have lowered the `N-rep` in the `MD` stage in the `simulation_config.json` to 4
+and simulation to 2 ns (1 M steps)
+so that all compute fits in 1 GPU and finishes quickly. 
+Ideally you want 20 replicas per pose and 8 ns simulations. 
 
 ```bash
 vim ../../01_Workflow/utilites/simulation_config.json # Read, and see what kind of parameters you can adjust
@@ -268,7 +276,7 @@ Let's go to summit and actually do it.
 bsub -q debug Ssubmit_MD_0.sh
 ```
 
-This will take about 110 minutes to complete, so in the meanwhile we can talk about other details.
+This will take about 25 minutes to complete, so in the meanwhile we can talk about other details.
 
 
 

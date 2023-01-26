@@ -125,7 +125,7 @@ if NGPU == 1: # Also write local script for execution
     with open(f'EM_local.sh', 'w') as f:
         f.write('#!/bin/bash\n\n')
         f.write('sh EM_script.sh\n')
-        f.write('~/Tools/amber_rhel8_2/bin/mdgx.cuda -O -i mdgxGPU_EM_0.in -Reckless &\n')
+        f.write('mdgx.cuda -O -i mdgxGPU_EM_0.in -Reckless &\n')
         f.write('wait')
 
 with open(f'Ssubmit_EM.sh','w') as f:
@@ -144,7 +144,7 @@ sh EM_script.sh
 
 for i in {{0..{NGPU-1}}};
 do
-  jsrun -n 1 -g 1 -a 1 -c 1 --smpiargs="off" ~/Tools/amber_rhel8_2/bin/mdgx.cuda -O -i mdgxGPU_EM_${{i}}.in -Reckless &
+  jsrun -n 1 -g 1 -a 1 -c 1 --smpiargs="off" mdgx.cuda -O -i mdgxGPU_EM_${{i}}.in -Reckless &
 done
 
 wait
