@@ -24,7 +24,7 @@ def write_vina_dock(fh, config, jname, dname, rname, lname, lfname, dockX, dockY
         obabel -ipdbqt {lname}_d.pdbqt -opdb -O {lname}.pdb -d # Get the extra pdb for calculating RMSD in the subseuqent analyses
         lig_atoms=`obabel -ipdb {lname}.pdb -opdb -h | grep "ATOM" | wc -l`
         echo "Ligand {lname} has $lig_atoms atoms including hydrogens"
-        python ../../01_Workflow/utilities/vina_dock.py ../../03_Gridmaps/{dname}/{rname}.pdbqt {lname}.pdbqt {dockX} {dockY} {dockZ}
+        python ../../01_Workflow/utilities/vina_dock.py ../../03_PrepProtein/{dname}/{rname}.pdbqt {lname}.pdbqt {dockX} {dockY} {dockZ}
         python ../../01_Workflow/utilities/parseVinaDock.py . {jname}
         mkdir -p docked_pdb
         #mkdir -p docked_pdb_h
@@ -33,7 +33,7 @@ def write_vina_dock(fh, config, jname, dname, rname, lname, lfname, dockX, dockY
             obabel -ipdbqt docked/${{i}} -opdb -Odocked_pdb/${{i%.*}}.pdb -d
         done
         mkdir -p ../../05_Refinement/{jname}/Structure/docked_pdb_h
-        cd ../../03_Gridmaps/{dname}
+        cd ../../03_PrepProtein/{dname}
         mkdir -p assembly
         python assembly.py $lig_atoms > assembly.log
         cd assembly
@@ -50,8 +50,8 @@ def write_vina_flex_dock(fh, config, jname, dname, rname, lname, lfname, dockX, 
         obabel -ipdbqt {lname}.pdbqt -opdb -O {lname}.pdb -d
         lig_atoms=`obabel -ipdb {lname}.pdb -opdb -h | grep "ATOM" | wc -l`
         echo "Ligand {lname} has $lig_atoms atoms including hydrogens"
-        python ../../01_Workflow/utilities/vina_flex_dock.py ../../03_Gridmaps/{dname}/{rname}.pdbqt {lname}.pdbqt {dockX} {dockY} {dockZ}
-        python ../../01_Workflow/utilities/parseVinaFlexDock.py . {jname} ../../03_Gridmaps/{dname}
+        python ../../01_Workflow/utilities/vina_flex_dock.py ../../03_PrepProtein/{dname}/{rname}.pdbqt {lname}.pdbqt {dockX} {dockY} {dockZ}
+        python ../../01_Workflow/utilities/parseVinaFlexDock.py . {jname} ../../03_PrepProtein/{dname}
         mkdir -p docked_pdb
         #mkdir -p docked_pdb_h
         for i in `ls docked`;
@@ -59,7 +59,7 @@ def write_vina_flex_dock(fh, config, jname, dname, rname, lname, lfname, dockX, 
             obabel -ipdbqt docked/${{i}} -opdb -Odocked_pdb/${{i%.*}}.pdb -d
         done
         mkdir -p ../../05_Refinement/{jname}/Structure/docked_pdb_h
-        cd ../../03_Gridmaps/{dname}
+        cd ../../03_PrepProtein/{dname}
         mkdir -p assembly
         for i in `seq 1 20`;
         do
@@ -155,7 +155,7 @@ def write_prepareComplex(fh, jname, lname, dname):
             obabel -ipdb docked_pdb/${{i}} -opdb -O ../../05_Refinement/{jname}/Structure/docked_pdb_h/${{i%.*}}.pdb -h
         done
         cd ../../05_Refinement/{jname}/Structure
-        python ../../../01_Workflow/utilities/prepareComplex.py ../../../03_Gridmaps/{dname}/assembly/ lig_param/ docked_pdb_h/ {jname}
+        python ../../../01_Workflow/utilities/prepareComplex.py ../../../03_PrepProtein/{dname}/assembly/ lig_param/ docked_pdb_h/ {jname}
         cd ../reference_structure
         obabel -ipdb ligand.pdb -opdb -O ligand_d.pdb -d
         obabel -ipdb ligand_d.pdb -omol -O ligand.mol
@@ -172,14 +172,14 @@ def write_prepareFlexComplex(fh, jname, lname, dname):
             obabel -ipdb docked_pdb/${{i}} -opdb -O ../../05_Refinement/{jname}/Structure/docked_pdb_h/${{i%.*}}.pdb -h
         done
         cd ../../05_Refinement/{jname}/Structure
-        python ../../../01_Workflow/utilities/prepareFlexComplex.py ../../../03_Gridmaps/{dname}/ lig_param/ docked_pdb_h/ {jname}
+        python ../../../01_Workflow/utilities/prepareFlexComplex.py ../../../03_PrepProtein/{dname}/ lig_param/ docked_pdb_h/ {jname}
         cd ../
         ''')
 
 def write_prepareComplex_openmm(fh, jname, lname, dname):
     fh.write(f''' 
         cd ../../05_Refinement/{jname}/Structure
-        python ../../../01_Workflow/utilities/prepareComplex_openmm.py ../../../03_Gridmaps/{dname}/assembly/ lig_param/ docked_pdb_h/ inpcrd/ {jname}
+        python ../../../01_Workflow/utilities/prepareComplex_openmm.py ../../../03_PrepProtein/{dname}/assembly/ lig_param/ docked_pdb_h/ inpcrd/ {jname}
         cd ../
         ''')
 

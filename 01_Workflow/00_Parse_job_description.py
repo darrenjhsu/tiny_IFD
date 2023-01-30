@@ -40,7 +40,7 @@ config['assembleMode'] = args.assembleMode
 config['assembleTarget'] = args.assembleTarget
 
 
-os.makedirs('../03_Gridmaps', exist_ok=True)
+os.makedirs('../03_PrepProtein', exist_ok=True)
 os.makedirs('../04_Docking', exist_ok=True)
 os.makedirs('../05_Refinement', exist_ok=True)
 os.makedirs('../06_Analysis', exist_ok=True)
@@ -136,12 +136,12 @@ for item in ['parallelDock', 'parallelAntechamber', 'parallelEM', 'parallelcpptr
 print(config)
 
 try:
-    os.mkdir('../03_Gridmaps/script')
+    os.mkdir('../03_PrepProtein/script')
 except:
     pass
 fh = []  # File handle array
 
-g = open('../03_Gridmaps/script/andes_prepDock.sh', 'w')
+g = open('../03_PrepProtein/script/andes_prepDock.sh', 'w')
 g.write('#!/bin/bash\n')
 g.write(f'#SBATCH -N 1\n')
 g.write('#SBATCH -t 1:00:00\n')
@@ -150,19 +150,19 @@ g.write('echo "`date`: Job starts"\n')
 g.write('source ~/.andesrc\n\n\n')
 
 for ii in range(config['parallelGrid']):
-    fh.append(open(f'../03_Gridmaps/script/prepDock{ii}.sh','w'))
+    fh.append(open(f'../03_PrepProtein/script/prepDock{ii}.sh','w'))
     g.write(f'srun -n1 -N1 -c1 -s sh prepDock{ii}.sh & \n')
 
 g.write('wait\n\n')
 g.write('echo "`date`: All done!\n\n"')
 g.close()
 
-for idx, row in Receptors.iterrows():
-    dname = f'{row["Receptor_name"]}_{row["dockX"]}_{row["dockY"]}_{row["dockZ"]}'
-    os.makedirs(f'../03_Gridmaps/{dname}', exist_ok=True)
+for idx, row in Jobs.iterrows():
+    dname = row["Job_name"]
+    os.makedirs(f'../03_PrepProtein/{dname}', exist_ok=True)
     write_preppdbqt(fh[idx % config['parallelGrid']], config, dname, row["Receptor_name"], row["Receptor_file_name"], row["dockX"], row["dockY"], row["dockZ"], rigid)
-    write_fix_protein(f'../03_Gridmaps/{dname}/fix_protein.in', row["Receptor_name"])
-    write_assembly(f'../03_Gridmaps/{dname}/assembly.py',row["Receptor_name"], row["dockX"], row["dockY"], row["dockZ"], aMode, aThres)
+    write_fix_protein(f'../03_PrepProtein/{dname}/fix_protein.in', row["Receptor_name"])
+    write_assembly(f'../03_PrepProtein/{dname}/assembly.py',row["Receptor_name"], row["dockX"], row["dockY"], row["dockZ"], aMode, aThres)
 for ii in range(config['parallelGrid']):
     fh[ii].close()
 
@@ -202,7 +202,7 @@ with open(f'../04_Docking/script/01_check_docking.sh','w') as f, open(f'../04_Do
     g.write('source ~/.andesrc\n\n\n')
     g.write('mkdir docking_results\n')
     for idx, row in Jobs.iterrows():
-        dname = f'{row["Receptor_name"]}_{row["dockX"]}_{row["dockY"]}_{row["dockZ"]}'
+        dname = row["Job_name"]
         lname = row["Ligand_name"]
         jname = row["Job_name"]
         os.makedirs(f'../04_Docking/{jname}', exist_ok=True)
@@ -210,7 +210,7 @@ with open(f'../04_Docking/script/01_check_docking.sh','w') as f, open(f'../04_Do
             write_vina_dock(fh[idx % config['parallelDock']], config, jname, dname, row["Receptor_name"], row["Ligand_name"], row["Ligand_file_name"], row['dockX'], row['dockY'], row['dockZ'])
         else:
             write_vina_flex_dock(fh[idx % config['parallelDock']], config, jname, dname, row["Receptor_name"], row["Ligand_name"], row["Ligand_file_name"], row['dockX'], row['dockY'], row['dockZ'])
-            write_flex_assembly(f'../03_Gridmaps/{dname}/flex_assembly.py',row["Receptor_name"], jname, row["dockX"], row["dockY"], row["dockZ"])
+            write_flex_assembly(f'../03_PrepProtein/{dname}/flex_assembly.py',row["Receptor_name"], jname, row["dockX"], row["dockY"], row["dockZ"])
         f.write(f'python ../../01_Workflow/utilities/check_dock.py {jname} {lname}.pdb\n')
         g.write(f'srun -n1 -N1 -c1 -s python ../../01_Workflow/utilities/check_dock.py {jname} {lname}.pdb > docking_results/{jname}.txt & \n')
         if (idx > 0) and (idx + 1) % 32 == 0:
@@ -256,7 +256,7 @@ g.write('echo "`date`: All done!\n\n"')
 g.close()
 
 for idx, row in Jobs.iterrows():
-    dname = f'{row["Receptor_name"]}_{row["dockX"]}_{row["dockY"]}_{row["dockZ"]}'
+    dname = row["Job_name"]
     lname = row["Ligand_file_name"]
     jname = row["Job_name"]
     try:
@@ -303,7 +303,7 @@ else:
     ih.write('wait\n\n\n')
 
 for idx, row in Jobs.iterrows():
-    dname = f'{row["Receptor_name"]}_{row["dockX"]}_{row["dockY"]}_{row["dockZ"]}'
+    dname = row["Job_name"]
     lname = row["Ligand_file_name"]
     jname = row["Job_name"]
     os.makedirs(f'../05_Refinement/{jname}/Structure/', exist_ok=True)
@@ -340,7 +340,7 @@ else:
     ih.close()
 
 for idx, row in Jobs.iterrows():
-    dname = f'{row["Receptor_name"]}_{row["dockX"]}_{row["dockY"]}_{row["dockZ"]}'
+    dname = row["Job_name"]
     lname = row["Ligand_file_name"]
     jname = row["Job_name"]
     write_prepareComplex_openmm(fh[idx % config['parallelPrepareComplex']], jname, lname, dname)
