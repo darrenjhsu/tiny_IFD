@@ -25,7 +25,7 @@ try:
 except:
     pass
 try:
-    for rank in range(1,21):
+    for rank in range(1, len(PDBQT)+1):
         with open(f'{path}/docked/{jname}_{rank}.pdbqt','w') as f:
             f.writelines(PDBQT[rank])
 except:
