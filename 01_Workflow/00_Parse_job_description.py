@@ -219,7 +219,7 @@ with open(f'../04_Docking/script/01_check_docking.sh','w') as f, open(f'../04_Do
     g.write('echo "`date`: All done!\n\n"')
     g.close()
 
-#shutil.copyfile('utilities/check_docking.py', '../04_Docking/script/02_check_docking.py')
+shutil.copyfile('utilities/check_docking.py', '../04_Docking/script/02_check_docking.py')
 
 for ii in range(config['parallelDock']):
     fh[ii].close()
