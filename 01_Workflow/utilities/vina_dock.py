@@ -3,6 +3,9 @@ from vina import Vina
 import mdtraj
 import numpy as np
 
+# Usage: vina_dock.py <receptor_file> <ligand_file> <dockX> <dockY> <dockZ> <num_output_poses> <energy_range>
+# energy_range can be float, 'inf', 'infinity', 'np.inf'; otherwise, defaults to None (let Vina set it)
+
 mol = mdtraj.load(sys.argv[2].replace('.pdbqt','_d_c.pdb'))
 rg = mdtraj.compute_rg(mol)[0] * 10
 rgbox = rg * 2.9 # Based on a paper on optimal box size
@@ -42,5 +45,13 @@ energy_minimized = v.optimize()
 print('Score after minimization : %.3f (kcal/mol)' % energy_minimized[0])
 
 # Dock the ligand
-v.dock(exhaustiveness=32, n_poses=40)
-v.write_poses('docking.dlg', n_poses=20, overwrite=True)
+v.dock(exhaustiveness=32, n_poses=2*int(sys.argv[6])
+if sys.argv[7] in ['inf', 'np.inf', 'infinity']:
+    v.write_poses('docking.dlg', n_poses=int(sys.argv[6]), overwrite=True, energy_range=np.inf)
+else:
+    try:
+        float(sys.argv[7])
+        v.write_poses('docking.dlg', n_poses=int(sys.argv[6]), overwrite=True, energy_range=float(sys.argv[7]))
+    except:
+        print("sys.argv[7] is not a float, use no energy range")
+        v.write_poses('docking.dlg', n_poses=int(sys.argv[6]), overwrite=True)

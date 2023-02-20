@@ -22,6 +22,8 @@ parser.add_argument('--parallelXGBoost', nargs='?', type=int, default=1, help="S
 parser.add_argument('--dockingMode', type=str, default='rigid', help="Whether to use flexible docking (changes some residue orientations) (rigid|flex)")
 parser.add_argument('--assembleMode', type=str, default='atoms', help="Use what strategy to assemble the core (atoms|residues)")
 parser.add_argument('--assembleTarget', type=int, default=920, help="How many atoms / residues you want included in the simulations (including caps and ligand). Recommended: 920 for atoms, 60 for residues")
+parser.add_argument('--dockOutputPoses', type=int, default='20', help="Number of poses to output in docking")
+parser.add_argument('--dockEnergyRange', type=str, default='None', help="Energy range in Vina docking settings (float or ['inf', 'np.inf', 'infinity'] for infinite energy range, or any other string to let Vina decide")
 parser.add_argument('--config', nargs='?', type=str, default=None, help="File logging locations of executables")
 
 args = parser.parse_args()
@@ -38,7 +40,8 @@ config['parallelXGBoost'] = args.parallelXGBoost
 config['dockingMode'] = args.dockingMode
 config['assembleMode'] = args.assembleMode
 config['assembleTarget'] = args.assembleTarget
-
+config['dockOutputPoses'] = args.dockOutputPoses
+config['dockEnergyRange'] = args.dockEnergyRange
 
 os.makedirs('../03_PrepProtein', exist_ok=True)
 os.makedirs('../04_Docking', exist_ok=True)
@@ -52,7 +55,7 @@ if args.config is not None:
     for line in cont:
         try:
             #print(line)
-            if line.split('=')[0] in ['parallelGrid', 'parallelDock', 'parallelAntechamber', 'parallelPrepareComplex', 'parallelEM', 'parallelcpptraj', 'parallelMDR', 'parallelXGBoost', 'assembleTarget']:
+            if line.split('=')[0] in ['parallelGrid', 'parallelDock', 'parallelAntechamber', 'parallelPrepareComplex', 'parallelEM', 'parallelcpptraj', 'parallelMDR', 'parallelXGBoost', 'assembleTarget', 'dockOutputPoses']:
                 try:
                     config[line.split('=')[0]] = int(line.split('=')[1].strip())
                 except:
@@ -207,7 +210,7 @@ with open(f'../04_Docking/script/01_check_docking.sh','w') as f, open(f'../04_Do
         jname = row["Job_name"]
         os.makedirs(f'../04_Docking/{jname}', exist_ok=True)
         if rigid:
-            write_vina_dock(fh[idx % config['parallelDock']], config, jname, dname, row["Receptor_name"], row["Ligand_name"], row["Ligand_file_name"], row['dockX'], row['dockY'], row['dockZ'])
+            write_vina_dock(fh[idx % config['parallelDock']], config, jname, dname, row["Receptor_name"], row["Ligand_name"], row["Ligand_file_name"], row['dockX'], row['dockY'], row['dockZ'], config['dockOutputPoses'], config['dockEnergyRange'])
         else:
             write_vina_flex_dock(fh[idx % config['parallelDock']], config, jname, dname, row["Receptor_name"], row["Ligand_name"], row["Ligand_file_name"], row['dockX'], row['dockY'], row['dockZ'])
             write_flex_assembly(f'../03_PrepProtein/{dname}/flex_assembly.py',row["Receptor_name"], jname, row["dockX"], row["dockY"], row["dockZ"])

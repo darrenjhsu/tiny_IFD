@@ -2,6 +2,8 @@
 dockingMode=rigid
 parallelGrid=32
 parallelDock=1
+dockOutputPoses=20
+dockEnergyRange=normal
 assembleMode=protein_atoms
 assembleTarget=800
 parallelAntechamber=1
