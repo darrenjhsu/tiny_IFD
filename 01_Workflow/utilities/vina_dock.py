@@ -45,7 +45,7 @@ energy_minimized = v.optimize()
 print('Score after minimization : %.3f (kcal/mol)' % energy_minimized[0])
 
 # Dock the ligand
-v.dock(exhaustiveness=32, n_poses=2*int(sys.argv[6])
+v.dock(exhaustiveness=32, n_poses=2*int(sys.argv[6]))
 if sys.argv[7] in ['inf', 'np.inf', 'infinity']:
     v.write_poses('docking.dlg', n_poses=int(sys.argv[6]), overwrite=True, energy_range=np.inf)
 else:
