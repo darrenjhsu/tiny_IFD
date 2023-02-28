@@ -14,7 +14,7 @@ def write_preppdbqt(fh, config, dname, rname, rfname, dockX, dockY, dockZ, rigid
         ''')
 
 
-def write_vina_dock(fh, config, jname, dname, rname, lname, lfname, dockX, dockY, dockZ):
+def write_vina_dock(fh, config, jname, dname, rname, lname, lfname, dockX, dockY, dockZ, numPose, energyRange):
     fh.write(f'''
         cd ../{jname}
         obabel -ipdb ../../02_Input/{lfname} -opdb -O {lname}_d.pdb -d # Remove hydrogens that may come with the ligand XRD
@@ -24,7 +24,7 @@ def write_vina_dock(fh, config, jname, dname, rname, lname, lfname, dockX, dockY
         obabel -ipdbqt {lname}_d.pdbqt -opdb -O {lname}.pdb -d # Get the extra pdb for calculating RMSD in the subseuqent analyses
         lig_atoms=`obabel -ipdb {lname}.pdb -opdb -h | grep "ATOM" | wc -l`
         echo "Ligand {lname} has $lig_atoms atoms including hydrogens"
-        python ../../01_Workflow/utilities/vina_dock.py ../../03_PrepProtein/{dname}/{rname}.pdbqt {lname}.pdbqt {dockX} {dockY} {dockZ}
+        python ../../01_Workflow/utilities/vina_dock.py ../../03_PrepProtein/{dname}/{rname}.pdbqt {lname}.pdbqt {dockX} {dockY} {dockZ} {numPose} {energyRange}
         python ../../01_Workflow/utilities/parseVinaDock.py . {jname}
         mkdir -p docked_pdb
         #mkdir -p docked_pdb_h
